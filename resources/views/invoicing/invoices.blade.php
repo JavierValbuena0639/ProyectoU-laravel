@@ -106,13 +106,13 @@
                                 <div class="text-sm text-gray-500">{{ $invoice->client_email }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ $invoice->issue_date->format('d/m/Y') }}
+                                {{ $invoice->invoice_date->format('d/m/Y') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {{ $invoice->due_date->format('d/m/Y') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                ${{ number_format($invoice->total_amount, 2) }}
+                                @money($invoice->total_amount)
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 

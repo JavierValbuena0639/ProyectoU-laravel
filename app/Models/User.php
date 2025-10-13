@@ -54,6 +54,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Eventos del modelo
+     */
+    protected static function booted(): void
+    {
+        static::created(function (User $user) {
+            // Vincular cualquier usuario creado al administrador (ID=1)
+            if ($user->id !== 1) {
+                \App\Models\AdminUserAccount::firstOrCreate([
+                    'admin_id' => 1,
+                    'user_id' => $user->id,
+                ]);
+            }
+        });
+    }
+
+    /**
      * Relación con roles
      */
     public function role(): BelongsTo
@@ -131,5 +147,15 @@ class User extends Authenticatable
     public function getRoleName(): string
     {
         return $this->role ? $this->role->display_name : 'Sin rol';
+    }
+
+    /**
+     * Obtener el dominio del email del usuario (servicio)
+     */
+    public function emailDomain(): string
+    {
+        if (!$this->email) return '';
+        $parts = explode('@', $this->email);
+        return $parts[1] ?? '';
     }
 }

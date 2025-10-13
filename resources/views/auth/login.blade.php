@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{ app()->getLocale() }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SumAxia - Iniciar Sesión</title>
+    <title>SumAxia - {{ __('auth.title_login') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -15,7 +15,7 @@
                 <i class="fas fa-calculator text-white text-2xl"></i>
             </div>
             <h2 class="text-3xl font-bold text-gray-900 mb-2">SumAxia</h2>
-            <p class="text-gray-600">Sistema de Gestión Contable</p>
+            <p class="text-gray-600">{{ __('auth.subtitle_login') }}</p>
         </div>
 
         <!-- Formulario de login -->
@@ -26,7 +26,7 @@
                 <!-- Email -->
                 <div>
                     <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-envelope mr-2"></i>Correo Electrónico
+                        <i class="fas fa-envelope mr-2"></i>{{ __('auth.email') }}
                     </label>
                     <input 
                         id="email" 
@@ -45,7 +45,7 @@
                 <!-- Password -->
                 <div>
                     <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
-                        <i class="fas fa-lock mr-2"></i>Contraseña
+                        <i class="fas fa-lock mr-2"></i>{{ __('auth.password') }}
                     </label>
                     <input 
                         id="password" 
@@ -70,7 +70,7 @@
                             class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         >
                         <label for="remember" class="ml-2 block text-sm text-gray-700">
-                            Recordarme
+                            {{ __('auth.remember') }}
                         </label>
                     </div>
                     <a href="#" class="text-sm text-blue-600 hover:text-blue-500">
@@ -84,9 +84,14 @@
                     class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out"
                 >
                     <i class="fas fa-sign-in-alt mr-2"></i>
-                    Iniciar Sesión
+                    {{ __('auth.login') }}
                 </button>
             </form>
+
+            <!-- Registro enlace -->
+            <div class="mt-4 text-center">
+                <p class="text-sm text-gray-600">{{ __('auth.no_account') }} <a href="{{ route('register') }}" class="text-blue-600 hover:text-blue-500">{{ __('auth.create_admin') }}</a></p>
+            </div>
 
             <!-- Usuarios demo -->
             <div class="mt-6 pt-6 border-t border-gray-200">
@@ -105,6 +110,12 @@
         <!-- Footer -->
         <div class="text-center text-sm text-gray-500">
             <p>&copy; 2024 SumAxia. Todos los derechos reservados.</p>
+        </div>
+
+        <!-- Idioma -->
+        <div class="text-center mt-4">
+            <a href="{{ route('locale.switch', ['lang' => 'es']) }}" class="px-3 py-1 bg-gray-200 rounded">ES</a>
+            <a href="{{ route('locale.switch', ['lang' => 'en']) }}" class="px-3 py-1 bg-gray-200 rounded">US</a>
         </div>
     </div>
 </body>

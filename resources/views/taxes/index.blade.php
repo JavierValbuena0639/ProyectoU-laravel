@@ -259,7 +259,7 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Total Impuestos</p>
-                        <p class="text-2xl font-semibold text-red-600">${{ number_format(array_sum(array_column($declarations, 'tax')), 0) }}</p>
+                        <p class="text-2xl font-semibold text-red-600">@money(array_sum(array_column($declarations, 'tax')))</p>
                     </div>
                 </div>
             </div>

@@ -65,7 +65,8 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // Zona horaria por defecto para Colombia
+    'timezone' => env('APP_TIMEZONE', 'America/Bogota'),
 
     /*
     |--------------------------------------------------------------------------
@@ -78,11 +79,17 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    // Localización principal en español (Colombia)
+    'locale' => env('APP_LOCALE', 'es'),
 
-    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
+    // Localización de respaldo
+    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'es'),
 
-    'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
+    // Locale para Faker
+    'faker_locale' => env('APP_FAKER_LOCALE', 'es_CO'),
+
+    // Formato de fecha global
+    'date_format' => env('APP_DATE_FORMAT', 'd/m/Y'),
 
     /*
     |--------------------------------------------------------------------------
