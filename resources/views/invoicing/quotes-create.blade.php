@@ -179,7 +179,7 @@
                                                class="w-full px-2 py-1 border border-gray-300 rounded text-sm price-input" required>
                                     </td>
                                     <td class="px-4 py-2">
-                                        <span class="item-total font-medium">$0.00</span>
+                                        <span class="item-total font-medium">0</span>
                                     </td>
                                     <td class="px-4 py-2">
                                         <button type="button" class="text-red-600 hover:text-red-800 remove-item">
@@ -202,15 +202,15 @@
                             <div class="bg-gray-50 p-4 rounded-lg">
                                 <div class="flex justify-between mb-2">
                                     <span class="text-sm text-gray-600">Subtotal:</span>
-                                    <span id="subtotal" class="font-medium">$0.00</span>
+                                    <span id="subtotal" class="font-medium">0</span>
                                 </div>
                                 <div class="flex justify-between mb-2">
                                     <span class="text-sm text-gray-600">IVA (16%):</span>
-                                    <span id="tax" class="font-medium">$0.00</span>
+                                    <span id="tax" class="font-medium">0</span>
                                 </div>
                                 <div class="flex justify-between text-lg font-bold border-t pt-2">
                                     <span>Total:</span>
-                                    <span id="total">$0.00</span>
+                                    <span id="total">0</span>
                                 </div>
                             </div>
                         </div>
@@ -266,7 +266,7 @@ Forma de pago: 50% anticipo, 50% contra entrega.</textarea>
                            class="w-full px-2 py-1 border border-gray-300 rounded text-sm price-input" required>
                 </td>
                 <td class="px-4 py-2">
-                    <span class="item-total font-medium">$0.00</span>
+                    <span class="item-total font-medium">0</span>
                 </td>
                 <td class="px-4 py-2">
                     <button type="button" class="text-red-600 hover:text-red-800 remove-item">
@@ -295,6 +295,22 @@ Forma de pago: 50% anticipo, 50% contra entrega.</textarea>
             });
         }
 
+        // Helpers: currency formatting
+        function getCurrency() {
+            return '{{ config('currency.default') }}';
+        }
+
+        function formatMoney(value) {
+            const currency = getCurrency();
+            const localeMap = @json(config('currency.locale_map'));
+            const locale = localeMap[currency] || 'es-CO';
+            try {
+                return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(value);
+            } catch (e) {
+                return value.toFixed(2);
+            }
+        }
+
         // Calculate totals
         function calculateTotals() {
             let subtotal = 0;
@@ -304,17 +320,22 @@ Forma de pago: 50% anticipo, 50% contra entrega.</textarea>
                 const price = parseFloat(row.querySelector('.price-input').value) || 0;
                 const total = quantity * price;
                 
-                row.querySelector('.item-total').textContent = '$' + total.toFixed(2);
+                row.querySelector('.item-total').textContent = formatMoney(total);
                 subtotal += total;
             });
 
             const tax = subtotal * 0.16;
             const total = subtotal + tax;
 
-            document.getElementById('subtotal').textContent = '$' + subtotal.toFixed(2);
-            document.getElementById('tax').textContent = '$' + tax.toFixed(2);
-            document.getElementById('total').textContent = '$' + total.toFixed(2);
+            document.getElementById('subtotal').textContent = formatMoney(subtotal);
+            document.getElementById('tax').textContent = formatMoney(tax);
+            document.getElementById('total').textContent = formatMoney(total);
         }
+
+        // Initialize totals on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            calculateTotals();
+        });
 
         // Initialize event listeners
         attachEventListeners();

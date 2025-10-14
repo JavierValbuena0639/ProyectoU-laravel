@@ -356,7 +356,7 @@
                     <div class="space-y-2">
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">Total Pagado:</span>
-                            <span class="text-sm font-medium">$416,000</span>
+                            <span class="text-sm font-medium">@money(416000)</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">Empleados:</span>
@@ -364,7 +364,7 @@
                         </div>
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">Promedio:</span>
-                            <span class="text-sm font-medium">$83,200</span>
+                            <span class="text-sm font-medium">@money(83200)</span>
                         </div>
                     </div>
                     <button class="w-full mt-4 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded text-sm">
@@ -381,15 +381,15 @@
                     <div class="space-y-2">
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">Contabilidad:</span>
-                            <span class="text-sm font-medium">$146,000</span>
+                            <span class="text-sm font-medium">@money(146000)</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">Ventas:</span>
-                            <span class="text-sm font-medium">$110,000</span>
+                            <span class="text-sm font-medium">@money(110000)</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">Administración:</span>
-                            <span class="text-sm font-medium">$76,000</span>
+                            <span class="text-sm font-medium">@money(76000)</span>
                         </div>
                     </div>
                     <button class="w-full mt-4 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded text-sm">
@@ -406,15 +406,15 @@
                     <div class="space-y-2">
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">ISR:</span>
-                            <span class="text-sm font-medium">$62,400</span>
+                            <span class="text-sm font-medium">@money(62400)</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">IMSS:</span>
-                            <span class="text-sm font-medium">$41,600</span>
+                            <span class="text-sm font-medium">@money(41600)</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">Total:</span>
-                            <span class="text-sm font-medium">$104,000</span>
+                            <span class="text-sm font-medium">@money(104000)</span>
                         </div>
                     </div>
                     <button class="w-full mt-4 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded text-sm">

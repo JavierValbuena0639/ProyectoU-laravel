@@ -126,7 +126,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium 
                                 {{ $transaction->type === 'debit' ? 'text-red-600' : 'text-green-600' }}">
-                                ${{ number_format($transaction->amount, 2) }}
+                                @money($transaction->amount)
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <button class="text-blue-600 hover:text-blue-900 mr-3">
@@ -168,7 +168,7 @@
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Total Débitos</p>
                         <p class="text-2xl font-semibold text-red-600">
-                            ${{ number_format(\App\Models\Transaction::where('type', 'debit')->sum('amount'), 2) }}
+                            @money(\App\Models\Transaction::where('type', 'debit')->sum('amount'))
                         </p>
                     </div>
                 </div>
@@ -182,7 +182,7 @@
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Total Créditos</p>
                         <p class="text-2xl font-semibold text-green-600">
-                            ${{ number_format(\App\Models\Transaction::where('type', 'credit')->sum('amount'), 2) }}
+                            @money(\App\Models\Transaction::where('type', 'credit')->sum('amount'))
                         </p>
                     </div>
                 </div>
@@ -199,7 +199,7 @@
                             $balance = \App\Models\Transaction::where('type', 'credit')->sum('amount') - \App\Models\Transaction::where('type', 'debit')->sum('amount');
                         @endphp
                         <p class="text-2xl font-semibold {{ $balance >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                            ${{ number_format($balance, 2) }}
+                            @money($balance)
                         </p>
                     </div>
                 </div>

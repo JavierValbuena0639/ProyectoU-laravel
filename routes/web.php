@@ -2,6 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\DatabaseController as AdminDatabaseController;
+use App\Http\Controllers\Auth\RegisterController;
 
 // Ruta principal - redirige al dashboard si está autenticado, sino al login
 Route::get('/', function () {
@@ -18,39 +21,151 @@ Route::get('/login', function () {
 
 Route::post('/login', [App\Http\Controllers\Auth\LoginController::class, 'login']);
 
+// Registro de administradores (acceso invitado)
+Route::middleware('guest')->group(function () {
+    Route::get('/register', [RegisterController::class, 'show'])->name('register');
+    Route::post('/register', [RegisterController::class, 'store']);
+    // Cambio de idioma disponible también para invitados
+    Route::get('/locale/{lang}', [\App\Http\Controllers\LocaleController::class, 'switch'])->name('locale.switch');
+});
+
 Route::post('/logout', function () {
     Auth::logout();
     return redirect()->route('login');
 })->name('logout');
 
 // Rutas protegidas
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'inactive'])->group(function () {
     Route::get('/dashboard', function () {
+        $user = Auth::user();
+        if ($user && method_exists($user, 'isAdmin') && $user->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
         return view('dashboard');
     })->name('dashboard');
+
+    // Cambio de idioma para usuarios autenticados
+    Route::get('/locale/{lang}', [\App\Http\Controllers\LocaleController::class, 'switch'])->name('locale.switch');
     
     // Rutas de administración (solo admin)
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', function () {
             return view('admin.dashboard');
         })->name('dashboard');
+
+        // Cambio de idioma en sección admin (usa misma ruta nombrada)
+        Route::get('/locale/{lang}', [\App\Http\Controllers\LocaleController::class, 'switch'])->name('locale.switch');
+
+        // Gestión de usuarios (controlador)
+        Route::get('/users', [AdminUserController::class, 'index'])->name('users');
+        Route::get('/users/create', [AdminUserController::class, 'create'])->name('users.create');
+        Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+        Route::post('/users/{user}/deactivate', [AdminUserController::class, 'deactivate'])->name('users.deactivate');
         
-        Route::get('/users', function () {
-            return view('admin.users');
-        })->name('users');
+        // Rutas para gestión de roles
+        Route::get('/roles', function () {
+            return view('admin.roles');
+        })->name('roles');
+        
+        Route::get('/roles/create', function () {
+            return view('admin.roles-create');
+        })->name('roles.create');
+        
+        Route::post('/roles', function () {
+            // Lógica para crear rol
+            return redirect()->route('admin.roles')->with('success', 'Rol creado exitosamente');
+        })->name('roles.store');
+        
+        // Rutas para configuración
+        Route::get('/config', function () {
+            return view('admin.config');
+        })->name('config');
+        Route::post('/config/save', [\App\Http\Controllers\Admin\SettingsController::class, 'save'])->name('config.save');
+        
+        // Base de datos (controlador)
+        Route::get('/database', [AdminDatabaseController::class, 'index'])->name('database');
+        Route::post('/database/test', [AdminDatabaseController::class, 'testConnection'])->name('database.test');
+        Route::post('/database/save', [AdminDatabaseController::class, 'saveConnection'])->name('database.save');
+        
+        // Rutas para reportes
+        Route::get('/reports', function () {
+            return view('admin.reports');
+        })->name('reports');
+        Route::get('/reports/export/{format}', [\App\Http\Controllers\Admin\ReportsController::class, 'export'])
+            ->name('reports.export');
     });
     
     // Rutas de contabilidad
     Route::prefix('accounting')->name('accounting.')->group(function () {
         Route::get('/accounts', function () {
-            return view('accounting.accounts');
+            $domain = \Illuminate\Support\Facades\Auth::user()->emailDomain();
+            $accounts = \App\Models\Account::forDomain($domain)->get();
+            return view('accounting.accounts', compact('accounts'));
         })->name('accounts');
         
         Route::get('/accounts/create', function () {
             return view('accounting.accounts-create');
         })->name('accounts.create');
         
-        Route::post('/accounts', function () {
+        Route::post('/accounts', function (\Illuminate\Http\Request $request) {
+            // Validación básica
+            $validated = $request->validate([
+                'account_code' => ['required', 'string', 'max:10'],
+                'account_name' => ['required', 'string', 'max:255'],
+                'account_type' => ['required', 'string'],
+                'normal_balance' => ['required', 'string'],
+                'initial_balance' => ['nullable', 'numeric'],
+                'description' => ['nullable', 'string'],
+                'is_active' => ['nullable'],
+                'parent_account' => ['nullable', 'string'],
+                'level' => ['required', 'integer'],
+                'confirm_domain' => ['nullable', 'string']
+            ]);
+
+            // Confirmación de dominio (si se envía desde el formulario)
+            $userDomain = \Illuminate\Support\Facades\Auth::user()->emailDomain();
+            if (!empty($validated['confirm_domain']) && $validated['confirm_domain'] !== $userDomain) {
+                return back()->withErrors(['confirm_domain' => 'El dominio confirmado no coincide con su dominio de servicio.'])->withInput();
+            }
+
+            // Mapear tipos del formulario a los enumerados de la BD
+            $typeInput = $validated['account_type'];
+            $typeMap = [
+                'capital' => 'patrimonio',
+                'ingresos' => 'ingreso',
+                'gastos' => 'gasto',
+                'costos' => 'costo',
+            ];
+            $type = $typeMap[$typeInput] ?? $typeInput; // activo/pasivo pasan directo
+
+            // Mapear saldo normal
+            $nature = $validated['normal_balance'] === 'deudor' ? 'debito' : 'credito';
+
+            // Resolver cuenta padre por código si existe
+            $parentId = null;
+            if (!empty($validated['parent_account'])) {
+                $parent = \App\Models\Account::where('code', $validated['parent_account'])->first();
+                $parentId = $parent?->id;
+            }
+
+            // Crear cuenta con dominio del usuario autenticado
+            $account = \App\Models\Account::create([
+                'code' => $validated['account_code'],
+                'name' => $validated['account_name'],
+                'type' => $type,
+                'nature' => $nature,
+                'parent_id' => $parentId,
+                'level' => (int) $validated['level'],
+                'balance' => (float) ($validated['initial_balance'] ?? 0),
+                'active' => $request->boolean('is_active'),
+                'accepts_movements' => true,
+                'description' => $validated['description'] ?? null,
+                'service_domain' => $userDomain,
+                'created_by' => \Illuminate\Support\Facades\Auth::id(),
+            ]);
+
             return redirect()->route('accounting.accounts')->with('success', 'Cuenta creada exitosamente');
         })->name('accounts.store');
         

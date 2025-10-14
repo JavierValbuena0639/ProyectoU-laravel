@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{ app()->getLocale() }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - SumAxia</title>
+    <title>{{ __('common.home') }} - SumAxia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -14,20 +14,27 @@
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
                     <h1 class="text-2xl font-bold text-blue-600">SumAxia</h1>
-                    <span class="ml-2 text-sm text-gray-500">Sistema Contable</span>
+                    <span class="ml-2 text-sm text-gray-500">{{ __('common.home') }}</span>
                 </div>
                 
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-gray-700">
-                        Bienvenido, {{ Auth::user()->name }}
+                        {{ __('messages.welcome') }}, {{ Auth::user()->name }}
                         <span class="text-xs text-gray-500">({{ Auth::user()->getRoleName() }})</span>
                     </span>
+                    @php $currentLocale = app()->getLocale(); @endphp
+                    <div class="flex items-center space-x-2">
+                        <a href="{{ route('locale.switch', ['lang' => 'es']) }}" aria-label="Español" title="Español"
+                           class="px-2 py-1 rounded border {{ $currentLocale === 'es' ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-700' }} hover:border-blue-500 hover:text-blue-600">🇪🇸</a>
+                        <a href="{{ route('locale.switch', ['lang' => 'en']) }}" aria-label="English" title="English"
+                           class="px-2 py-1 rounded border {{ $currentLocale === 'en' ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-700' }} hover:border-blue-500 hover:text-blue-600">🇺🇸</a>
+                    </div>
                     
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
                         <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm transition-colors">
                             <i class="fas fa-sign-out-alt mr-1"></i>
-                            Cerrar Sesión
+                            {{ __('common.logout') }}
                         </button>
                     </form>
                 </div>
@@ -39,7 +46,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Welcome Section -->
         <div class="mb-8">
-            <h2 class="text-3xl font-bold text-gray-900 mb-2">Dashboard Principal</h2>
+            <h2 class="text-3xl font-bold text-gray-900 mb-2">{{ __('common.home') }}</h2>
             <p class="text-gray-600">Resumen general de tu sistema contable</p>
         </div>
 
@@ -137,7 +144,14 @@
                 </div>
                 <div class="p-6">
                     @php
-                        $recentAudits = \App\Models\Audit::with('user')->latest()->take(5)->get();
+                        $domain = Auth::user()->emailDomain();
+                        $recentAudits = \App\Models\Audit::with('user')
+                            ->whereHas('user', function($q) use ($domain) {
+                                $q->where('email', 'like', '%@' . $domain);
+                            })
+                            ->latest()
+                            ->take(5)
+                            ->get();
                     @endphp
                     
                     @if($recentAudits->count() > 0)

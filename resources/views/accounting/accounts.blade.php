@@ -78,7 +78,8 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @php
-                            $accounts = \App\Models\Account::all();
+                            $domain = Auth::user()->emailDomain();
+                            $accounts = isset($accounts) ? $accounts : \App\Models\Account::forDomain($domain)->get();
                         @endphp
                         @foreach($accounts as $account)
                         <tr>
@@ -138,7 +139,8 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Activos</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::where('type', 'asset')->count() }}</p>
+                        @php($domain = Auth::user()->emailDomain())
+                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::forDomain($domain)->where('type', 'activo')->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -150,7 +152,8 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Pasivos</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::where('type', 'liability')->count() }}</p>
+                        @php($domain = Auth::user()->emailDomain())
+                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::forDomain($domain)->where('type', 'pasivo')->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -162,7 +165,8 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Patrimonio</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::where('type', 'equity')->count() }}</p>
+                        @php($domain = Auth::user()->emailDomain())
+                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::forDomain($domain)->where('type', 'patrimonio')->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -174,7 +178,8 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Ingresos</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::where('type', 'income')->count() }}</p>
+                        @php($domain = Auth::user()->emailDomain())
+                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::forDomain($domain)->where('type', 'ingreso')->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -186,7 +191,8 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Gastos</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::where('type', 'expense')->count() }}</p>
+                        @php($domain = Auth::user()->emailDomain())
+                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::forDomain($domain)->where('type', 'gasto')->count() }}</p>
                     </div>
                 </div>
             </div>
