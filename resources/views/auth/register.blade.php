@@ -6,6 +6,7 @@
     <title>SumAxia - {{ __('auth.title_register') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="{{ asset('icons/calculator.svg') }}" type="image/svg+xml">
     <style>body{background:linear-gradient(135deg,#f0f7ff,#e9ecff)}</style>
 </head>
 <body class="min-h-screen flex items-center justify-center">
@@ -45,7 +46,12 @@
                     <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
                         <i class="fas fa-lock mr-2"></i>{{ __('auth.password') }}
                     </label>
-                    <input id="password" name="password" type="password" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Mínimo 8 caracteres, mayúsculas, minúsculas, número y símbolo">
+                    <div class="relative">
+                        <input id="password" name="password" type="password" required class="w-full pr-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Mínimo 8 caracteres, mayúsculas, minúsculas, número y símbolo">
+                        <button type="button" id="toggle_pw" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700" aria-label="Mostrar u ocultar contraseña">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                     <div class="mt-2 text-xs text-gray-600" id="pw-requirements">
                         <p class="font-medium">Requisitos:</p>
                         <div class="grid grid-cols-2 gap-x-3 gap-y-2">
@@ -63,7 +69,13 @@
                     <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-2">
                         <i class="fas fa-lock mr-2"></i>{{ __('auth.confirm_password') }}
                     </label>
-                    <input id="password_confirmation" name="password_confirmation" type="password" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <div class="relative">
+                        <input id="password_confirmation" name="password_confirmation" type="password" required class="w-full pr-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <button type="button" id="toggle_pwc" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700" aria-label="Mostrar u ocultar confirmación">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div id="match-indicator" class="mt-2 text-xs"></div>
                 </div>
 
                 <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">
@@ -113,6 +125,20 @@
                         } else {
                             pwc.setCustomValidity('');
                         }
+                        // Actualizar indicador visual de coincidencia
+                        const indicator = document.getElementById('match-indicator');
+                        if (pwc.value.length === 0) {
+                            indicator.innerHTML = '';
+                            pwc.classList.remove('border-red-500','border-green-500');
+                        } else if (pw.value === pwc.value) {
+                            indicator.innerHTML = '<span class="inline-block px-3 py-1.5 rounded bg-green-100 text-green-700">Coinciden</span>';
+                            pwc.classList.add('border-green-500');
+                            pwc.classList.remove('border-red-500');
+                        } else {
+                            indicator.innerHTML = '<span class="inline-block px-3 py-1.5 rounded bg-red-100 text-red-700">No coinciden</span>';
+                            pwc.classList.add('border-red-500');
+                            pwc.classList.remove('border-green-500');
+                        }
                     });
 
                     pwc.addEventListener('input', function(){
@@ -121,7 +147,33 @@
                         } else {
                             this.setCustomValidity('');
                         }
+                        // Actualizar indicador visual de coincidencia
+                        const indicator = document.getElementById('match-indicator');
+                        if (this.value.length === 0) {
+                            indicator.innerHTML = '';
+                            this.classList.remove('border-red-500','border-green-500');
+                        } else if (pw.value === this.value) {
+                            indicator.innerHTML = '<span class="inline-block px-3 py-1.5 rounded bg-green-100 text-green-700">Coinciden</span>';
+                            this.classList.add('border-green-500');
+                            this.classList.remove('border-red-500');
+                        } else {
+                            indicator.innerHTML = '<span class="inline-block px-3 py-1.5 rounded bg-red-100 text-red-700">No coinciden</span>';
+                            this.classList.add('border-red-500');
+                            this.classList.remove('border-green-500');
+                        }
                     });
+
+                    // Toggle mostrar/ocultar contraseña
+                    const togglePw = document.getElementById('toggle_pw');
+                    const togglePwc = document.getElementById('toggle_pwc');
+                    function toggleVisibility(input, btn){
+                        const isText = input.type === 'text';
+                        input.type = isText ? 'password' : 'text';
+                        const icon = btn.querySelector('i');
+                        if (icon) icon.className = isText ? 'fas fa-eye' : 'fas fa-eye-slash';
+                    }
+                    if (togglePw) togglePw.addEventListener('click', function(){ toggleVisibility(pw, this); });
+                    if (togglePwc) togglePwc.addEventListener('click', function(){ toggleVisibility(pwc, this); });
 
                     checkPassword(pw.value || '');
                 })();

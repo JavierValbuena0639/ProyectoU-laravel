@@ -49,4 +49,12 @@ class Role extends Model
     {
         return $this->name === 'user';
     }
+
+    /**
+     * Verificar si es rol de soporte interno
+     */
+    public function isSupport(): bool
+    {
+        return $this->name === 'soporte_interno';
+    }
 }

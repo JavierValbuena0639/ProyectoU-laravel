@@ -10,6 +10,7 @@
         .section { margin-top: 16px; }
     </style>
     <title>{{ __('admin.reports_export_title') }}</title>
+    <link rel="icon" href="{{ asset('icons/calculator.svg') }}" type="image/svg+xml">
     </head>
 <body>
     <h1>{{ __('admin.reports_title') }}</h1>

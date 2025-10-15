@@ -6,6 +6,7 @@
     <title>{{ __('common.admin_panel') }} - SumAxia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="{{ asset('icons/calculator.svg') }}" type="image/svg+xml">
 </head>
 <body class="bg-gray-50">
     <!-- Header -->
@@ -188,7 +189,15 @@
             <div class="p-6">
                 <div class="space-y-4">
                     @php
-                        $recentAudits = \App\Models\Audit::with('user')->latest()->take(10)->get();
+                        $admin = Auth::user();
+                        $domain = $admin ? $admin->emailDomain() : '';
+                        $recentAudits = \App\Models\Audit::with('user')
+                            ->whereHas('user', function($q) use ($domain) {
+                                $q->where('email', 'like', '%@' . $domain);
+                            })
+                            ->latest()
+                            ->take(10)
+                            ->get();
                     @endphp
                     @foreach($recentAudits as $audit)
                     <div class="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">

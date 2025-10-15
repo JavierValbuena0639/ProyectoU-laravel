@@ -4,6 +4,24 @@
 
 Sumaxia es un sistema integral de gestión empresarial desarrollado en Laravel que incluye módulos para facturación, cotizaciones, contabilidad, nómina y administración de usuarios. El sistema está diseñado para pequeñas y medianas empresas que necesitan una solución completa para gestionar sus operaciones financieras y administrativas.
 
+## Actualizaciones Recientes
+
+- Home `/` reescrito con el mismo layout que `/login`: tarjeta centrada, CTAs, enlaces de `Register` y `Log in`, selector ES/US y footer.
+- Internacionalización del contenido del inicio:
+  - Nuevos archivos de traducción: `resources/lang/es/welcome.php` y `resources/lang/en/welcome.php`.
+  - `resources/views/welcome.blade.php` usa `{{ __('welcome.*') }}` para el párrafo y la lista de características.
+  - El botón de registro usa `{{ __('welcome.create_account') }}` (antes `auth.create_admin`).
+- En `/login`, el texto "SumAxia" ahora es un enlace que vuelve a `/`.
+- Ruta de idioma disponible para todos: `GET /locale/{lang}` (`route('locale.switch')`).
+- Respaldo actualizado: carpeta `bk` sincronizada con el estado actual del proyecto.
+
+### Cómo probar rápidamente
+- Ejecuta `php artisan serve --port=8001` y abre `http://127.0.0.1:8001/`.
+- Alterna el idioma con el selector ES/US; el intro y la lista cambian.
+- Ve a `http://127.0.0.1:8001/login` y haz clic en "SumAxia" para volver a `/`.
+
+
+
 ## Características Principales
 
 ### 📊 Dashboard Principal
@@ -45,6 +63,11 @@ Sumaxia es un sistema integral de gestión empresarial desarrollado en Laravel q
 ### 🧪 Validaciones y Middleware
 - Validación de dominio al crear usuarios: se bloquea el envío si el dominio del correo no coincide con el dominio esperado y se muestra un aviso.
 - Conversión automática de entradas a minúsculas: middleware global transforma todos los campos de texto en minúsculas (excluye `password` y `password_confirmation`).
+
+### 📧 Verificación por Correo
+- Envío de código de verificación (6 dígitos) al registrar administrador en `/register` y al crear usuarios desde `/admin/users/create`.
+- Mailable: `app/Mail/VerificationCodeMail.php` y plantilla: `resources/views/emails/verification-code.blade.php`.
+- En creación de usuarios por administrador se valida que el dominio del email coincida con el dominio esperado antes de enviar el código.
 
 ## Requisitos del Sistema
 
@@ -163,6 +186,10 @@ sumaxia/
 
 ## Rutas Principales
 
+### Autenticación
+- `/login` - Inicio de sesión
+- `/register` - Registro de administrador (envía código de verificación por email)
+
 ### Dashboard
 - `/` - Dashboard principal
 - `/dashboard` - Dashboard de usuario
@@ -216,6 +243,33 @@ MAIL_PORT=1025
 ### Configuración de Correo
 Para configurar el envío de correos, actualiza las variables MAIL_* en el archivo .env según tu proveedor de correo.
 
+Ejemplo para desarrollo con Mailhog/Mailpit:
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=mailhog
+MAIL_PORT=1025
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS="no-reply@sumaxia.com"
+MAIL_FROM_NAME="SumAxia Contabilidad"
+```
+
+### Sesiones
+- Por defecto se usa `SESSION_DRIVER=database`, lo que requiere la tabla `sessions`.
+- La migración que crea `sessions` se incluye dentro de `0001_01_01_000000_create_users_table.php`. Si ves el error de tabla faltante, ejecuta:
+```bash
+php artisan migrate
+```
+- Alternativa en desarrollo: usa archivos para sesiones.
+```env
+SESSION_DRIVER=file
+```
+Luego limpia configuración:
+```bash
+php artisan config:clear
+```
+
 ## Desarrollo
 
 ### Comandos Útiles
@@ -248,6 +302,40 @@ npm run build
 ```
 
 ## Solución de Problemas
+
+### Error: `SQLSTATE[42S02]: Base table or view not found: 1146 Table '...sessions' doesn't exist`
+- Causa: `SESSION_DRIVER=database` sin haber creado la tabla `sessions`.
+- Solución:
+  - Ejecuta migraciones: `php artisan migrate`.
+  - Verifica conexión a la BD en `.env` (`DB_*`) y que la base existe.
+  - Alternativa temporal en local: cambia a `SESSION_DRIVER=file` y corre `php artisan config:clear`.
+
+### Cache / Config desactualizada
+- Si cambias `.env` o configuración, ejecuta:
+```bash
+php artisan config:clear
+php artisan cache:clear
+```
+
+## Operaciones de Mantenimiento
+
+### Respaldo rápido (Windows)
+Crear carpeta `bk` y copiar contenido del proyecto (excluyendo directorios pesados y archivos volátiles):
+```powershell
+New-Item -ItemType Directory -Path bk -Force
+robocopy . bk /MIR \ \
+  /XF database\database.sqlite storage\logs\laravel.log \
+  /XD bk vendor storage\framework\cache storage\framework\views .git .github node_modules \
+  /NFL /NDL /NP /R:1 /W:1
+```
+
+### Rollback de migraciones
+Revertir el último lote de migraciones y recrear:
+```bash
+php artisan migrate:rollback
+php artisan migrate
+```
+
 
 ### Error de Permisos
 ```bash

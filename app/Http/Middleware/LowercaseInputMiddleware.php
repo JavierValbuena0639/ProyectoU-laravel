@@ -16,7 +16,7 @@ class LowercaseInputMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $excludedKeys = ['password', 'password_confirmation'];
+        $excludedKeys = ['_token', 'password', 'password_confirmation', 'confirm_word'];
 
         $data = $request->all();
         $normalized = $this->lowercaseRecursive($data, $excludedKeys);

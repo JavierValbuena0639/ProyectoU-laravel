@@ -7,6 +7,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use App\Models\User;
+use App\Models\Account;
 use Carbon\Carbon;
 
 class SettingsController extends Controller
@@ -46,6 +50,33 @@ class SettingsController extends Controller
         }
 
         return back()->with('success', __('Configuración del sistema actualizada correctamente'));
+    }
+
+    public function unsubscribe(Request $request)
+    {
+        $request->validate([
+            'confirm_domain' => ['nullable', 'string'],
+            'confirm_word' => ['required', 'in:DELETED'],
+        ]);
+
+        $admin = $request->user();
+        $domain = $admin && method_exists($admin, 'emailDomain') ? $admin->emailDomain() : null;
+        if (!$domain) {
+            return back()->withErrors(['domain' => 'No se pudo determinar el dominio del servicio.']);
+        }
+        if (!empty($request->input('confirm_domain')) && $request->input('confirm_domain') !== $domain) {
+            return back()->withErrors(['confirm_domain' => 'El dominio confirmado no coincide con su dominio de servicio.']);
+        }
+
+        DB::transaction(function () use ($domain) {
+            User::where('email', 'like', '%@' . $domain)->update(['active' => false]);
+            Account::forDomain($domain)->update(['active' => false]);
+        });
+
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect()->route('login')->with('status', 'Servicio dado de baja para el dominio ' . $domain . '. Se cerró la sesión.');
     }
 
     private function writeEnv(array $data): void
