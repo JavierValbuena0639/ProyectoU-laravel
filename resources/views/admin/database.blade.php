@@ -6,6 +6,7 @@
     <title>Gestión de Base de Datos - SumAxia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="{{ asset('icons/calculator.svg') }}" type="image/svg+xml">
 </head>
 <body class="bg-gray-50">
     <!-- Header -->
@@ -108,7 +109,9 @@
 
         <!-- Database Operations -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            @php($support = Auth::user()->isSupport())
             <!-- Backup Operations -->
+            @if($support)
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-900">
@@ -239,6 +242,25 @@
                     </div>
                 </div>
             </div>
+            @else
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-shield-alt mr-2 text-gray-600"></i>Acceso limitado
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <div class="p-4 bg-gray-50 rounded-lg">
+                            <p class="text-sm text-gray-700">Tu rol actual no permite ejecutar operaciones de respaldo, migraciones ni mantenimiento. Puedes consultar el estado y las tablas de la base de datos.</p>
+                        </div>
+                        <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <p class="text-sm text-yellow-800"><i class="fas fa-info-circle mr-2"></i>Si necesitas realizar estas operaciones, inicia sesión con un usuario de <strong>soporte interno</strong> o solicita permisos.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
 
             <!-- Database Tables -->
             <div class="bg-white rounded-lg shadow">
@@ -296,6 +318,7 @@
             </div>
 
             <!-- Database Configuration -->
+            @if($support)
             <div class="bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-900">
@@ -369,6 +392,7 @@
                     </form>
                 </div>
             </div>
+            @endif
         </div>
     </div>
 </body>

@@ -40,12 +40,25 @@ class LoginController extends Controller
                 'last_login' => now()
             ]);
 
-            // Redirigir según el rol del usuario
+            // Bloquear acceso si el usuario está inactivo
             $user = Auth::user();
+            if (!$user->active) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                throw ValidationException::withMessages([
+                    'email' => ['Tu cuenta está desactivada y no puede acceder.'],
+                ]);
+            }
+
+            // Redirigir según el rol del usuario
             if ($user->isAdmin()) {
                 return redirect()->intended('/admin/dashboard');
             }
-            
+            if (method_exists($user, 'isSupport') && $user->isSupport()) {
+                return redirect()->intended('/admin/database');
+            }
+
             return redirect()->intended('/dashboard');
         }
 

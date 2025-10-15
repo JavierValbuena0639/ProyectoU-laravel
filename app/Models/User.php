@@ -142,6 +142,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Verificar si es soporte interno
+     */
+    public function isSupport(): bool
+    {
+        return $this->role && method_exists($this->role, 'isSupport') && $this->role->isSupport();
+    }
+
+    /**
      * Obtener el nombre del rol
      */
     public function getRoleName(): string

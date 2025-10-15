@@ -6,13 +6,13 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\DatabaseController as AdminDatabaseController;
 use App\Http\Controllers\Auth\RegisterController;
 
-// Ruta principal - redirige al dashboard si está autenticado, sino al login
+// Ruta principal - muestra panel de bienvenida y redirige a /login en 30s
 Route::get('/', function () {
-    if (Auth::check()) {
-        return redirect()->route('dashboard');
-    }
-    return redirect()->route('login');
+    return view('welcome');
 });
+
+// Cambio de idioma accesible para cualquier usuario (invitado o autenticado)
+Route::get('/locale/{lang}', [\App\Http\Controllers\LocaleController::class, 'switch'])->name('locale.switch');
 
 // Rutas de autenticación
 Route::get('/login', function () {
@@ -25,8 +25,6 @@ Route::post('/login', [App\Http\Controllers\Auth\LoginController::class, 'login'
 Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisterController::class, 'show'])->name('register');
     Route::post('/register', [RegisterController::class, 'store']);
-    // Cambio de idioma disponible también para invitados
-    Route::get('/locale/{lang}', [\App\Http\Controllers\LocaleController::class, 'switch'])->name('locale.switch');
 });
 
 Route::post('/logout', function () {
@@ -41,11 +39,13 @@ Route::middleware(['auth', 'inactive'])->group(function () {
         if ($user && method_exists($user, 'isAdmin') && $user->isAdmin()) {
             return redirect()->route('admin.dashboard');
         }
+        if ($user && method_exists($user, 'isSupport') && $user->isSupport()) {
+            return redirect()->route('admin.database');
+        }
         return view('dashboard');
     })->name('dashboard');
 
-    // Cambio de idioma para usuarios autenticados
-    Route::get('/locale/{lang}', [\App\Http\Controllers\LocaleController::class, 'switch'])->name('locale.switch');
+    // Cambio de idioma: usa la ruta global 'locale.switch'
     
     // Rutas de administración (solo admin)
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -53,8 +53,7 @@ Route::middleware(['auth', 'inactive'])->group(function () {
             return view('admin.dashboard');
         })->name('dashboard');
 
-        // Cambio de idioma en sección admin (usa misma ruta nombrada)
-        Route::get('/locale/{lang}', [\App\Http\Controllers\LocaleController::class, 'switch'])->name('locale.switch');
+        // Cambio de idioma en sección admin: utiliza la ruta global 'locale.switch'
 
         // Gestión de usuarios (controlador)
         Route::get('/users', [AdminUserController::class, 'index'])->name('users');
@@ -83,11 +82,9 @@ Route::middleware(['auth', 'inactive'])->group(function () {
             return view('admin.config');
         })->name('config');
         Route::post('/config/save', [\App\Http\Controllers\Admin\SettingsController::class, 'save'])->name('config.save');
+        Route::post('/config/unsubscribe', [\App\Http\Controllers\Admin\SettingsController::class, 'unsubscribe'])->name('config.unsubscribe');
         
-        // Base de datos (controlador)
-        Route::get('/database', [AdminDatabaseController::class, 'index'])->name('database');
-        Route::post('/database/test', [AdminDatabaseController::class, 'testConnection'])->name('database.test');
-        Route::post('/database/save', [AdminDatabaseController::class, 'saveConnection'])->name('database.save');
+        // Base de datos: las rutas se definen fuera de este grupo para soporte
         
         // Rutas para reportes
         Route::get('/reports', function () {
@@ -95,6 +92,16 @@ Route::middleware(['auth', 'inactive'])->group(function () {
         })->name('reports');
         Route::get('/reports/export/{format}', [\App\Http\Controllers\Admin\ReportsController::class, 'export'])
             ->name('reports.export');
+    });
+
+    // Base de datos: acceso de lectura para admin y soporte, operaciones solo soporte
+    Route::middleware(['admin_or_support'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/database', [AdminDatabaseController::class, 'index'])->name('database');
+    });
+
+    Route::middleware(['support'])->prefix('admin')->name('admin.')->group(function () {
+        Route::post('/database/test', [AdminDatabaseController::class, 'testConnection'])->name('database.test');
+        Route::post('/database/save', [AdminDatabaseController::class, 'saveConnection'])->name('database.save');
     });
     
     // Rutas de contabilidad
@@ -112,7 +119,7 @@ Route::middleware(['auth', 'inactive'])->group(function () {
         Route::post('/accounts', function (\Illuminate\Http\Request $request) {
             // Validación básica
             $validated = $request->validate([
-                'account_code' => ['required', 'string', 'max:10'],
+                'account_code' => ['required', 'string', 'max:10', \Illuminate\Validation\Rule::unique('accounts', 'code')],
                 'account_name' => ['required', 'string', 'max:255'],
                 'account_type' => ['required', 'string'],
                 'normal_balance' => ['required', 'string'],
@@ -148,6 +155,18 @@ Route::middleware(['auth', 'inactive'])->group(function () {
             if (!empty($validated['parent_account'])) {
                 $parent = \App\Models\Account::where('code', $validated['parent_account'])->first();
                 $parentId = $parent?->id;
+            }
+
+            // Verificar unicidad de nombre dentro del dominio activo
+            $existingByName = \App\Models\Account::where('service_domain', $userDomain)
+                ->where('name', $validated['account_name'])
+                ->where('active', true)
+                ->exists();
+
+            if ($existingByName) {
+                return back()
+                    ->withErrors(['account_name' => 'Ya existe una cuenta activa con este nombre en su servicio.'])
+                    ->withInput();
             }
 
             // Crear cuenta con dominio del usuario autenticado

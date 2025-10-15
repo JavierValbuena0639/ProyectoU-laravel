@@ -6,6 +6,7 @@
     <title>SumAxia - {{ __('auth.title_login') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="{{ asset('icons/calculator.svg') }}" type="image/svg+xml">
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center">
     <div class="max-w-md w-full space-y-8 p-8">
@@ -14,7 +15,7 @@
             <div class="mx-auto h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
                 <i class="fas fa-calculator text-white text-2xl"></i>
             </div>
-            <h2 class="text-3xl font-bold text-gray-900 mb-2">SumAxia</h2>
+            <a href="{{ url('/') }}" class="text-3xl font-bold text-gray-900 mb-2 inline-block">SumAxia</a>
             <p class="text-gray-600">{{ __('auth.subtitle_login') }}</p>
         </div>
 
@@ -47,14 +48,25 @@
                     <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
                         <i class="fas fa-lock mr-2"></i>{{ __('auth.password') }}
                     </label>
-                    <input 
-                        id="password" 
-                        name="password" 
-                        type="password" 
-                        required 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="••••••••"
-                    >
+                    <div class="relative">
+                        <input 
+                            id="password" 
+                            name="password" 
+                            type="password" 
+                            required 
+                            class="w-full pr-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="••••••••"
+                        >
+                        <button 
+                            type="button"
+                            id="toggle_pw"
+                            aria-label="Mostrar u ocultar contraseña"
+                            aria-controls="password"
+                            class="absolute inset-y-0 right-2 flex items-center px-1 text-gray-500 hover:text-gray-700"
+                        >
+                            <i id="toggle_pw_icon" class="fas fa-eye"></i>
+                        </button>
+                    </div>
                     @error('password')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
@@ -101,6 +113,9 @@
                         <strong>Admin:</strong> admin@sumaxia.com / admin123
                     </div>
                     <div class="bg-gray-50 p-2 rounded">
+                        <strong>Soporte Interno:</strong> soporte@sumaxia.com / soporte123
+                    </div>
+                    <div class="bg-gray-50 p-2 rounded">
                         <strong>Usuario:</strong> user@sumaxia.com / user123
                     </div>
                 </div>
@@ -118,5 +133,22 @@
             <a href="{{ route('locale.switch', ['lang' => 'en']) }}" class="px-3 py-1 bg-gray-200 rounded">US</a>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function(){
+            var btn = document.getElementById('toggle_pw');
+            var input = document.getElementById('password');
+            var icon = document.getElementById('toggle_pw_icon');
+            if(btn && input){
+                btn.addEventListener('click', function(){
+                    var isHidden = input.type === 'password';
+                    input.type = isHidden ? 'text' : 'password';
+                    if(icon){
+                        icon.classList.toggle('fa-eye');
+                        icon.classList.toggle('fa-eye-slash');
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
