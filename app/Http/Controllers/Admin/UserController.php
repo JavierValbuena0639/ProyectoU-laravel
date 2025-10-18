@@ -41,7 +41,8 @@ class UserController extends Controller
      */
     public function create()
     {
-        $roles = Role::all();
+        // Ocultar rol de soporte interno para administradores
+        $roles = Role::where('name', '!=', 'soporte_interno')->get();
         $expectedDomain = auth()->user()->emailDomain();
         return view('admin.users-create', compact('roles', 'expectedDomain'));
     }
@@ -66,6 +67,12 @@ class UserController extends Controller
         $newUserDomain = explode('@', $validated['email'])[1] ?? '';
         if ($adminDomain !== $newUserDomain) {
             return back()->withErrors(['email' => 'Solo puedes crear usuarios para el dominio ' . $adminDomain])->withInput();
+        }
+
+        // Bloquear asignación del rol de soporte interno por administradores
+        $selectedRole = Role::find($validated['role_id']);
+        if ($selectedRole && $selectedRole->isSupport()) {
+            return back()->withErrors(['role_id' => 'No está permitido asignar el rol de Soporte Interno.'])->withInput();
         }
 
         // El modelo User tiene cast 'password' => 'hashed', así que no necesitamos hash manual
@@ -100,7 +107,8 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
-        $roles = Role::all();
+        // Ocultar rol de soporte interno para administradores
+        $roles = Role::where('name', '!=', 'soporte_interno')->get();
         return view('admin.users-edit', compact('user', 'roles'));
     }
 
@@ -116,6 +124,12 @@ class UserController extends Controller
             'role_id' => ['required', 'integer', 'exists:roles,id'],
             'status' => ['nullable', 'in:active,inactive'],
         ]);
+
+        // Bloquear asignación del rol de soporte interno por administradores
+        $selectedRole = Role::find($validated['role_id']);
+        if ($selectedRole && $selectedRole->isSupport()) {
+            return back()->withErrors(['role_id' => 'No está permitido asignar el rol de Soporte Interno.'])->withInput();
+        }
 
         $user->name = $validated['name'];
         $user->email = $validated['email'];

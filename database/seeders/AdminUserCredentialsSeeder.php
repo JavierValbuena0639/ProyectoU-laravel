@@ -33,11 +33,12 @@ class AdminUserCredentialsSeeder extends Seeder
             ]
         );
 
+        // Rol de soporte interno
         $supportRole = Role::firstOrCreate(
             ['name' => 'soporte_interno'],
             [
                 'display_name' => 'Soporte Interno',
-                'description' => 'Rol de soporte con permisos de mantenimiento de BD',
+                'description' => 'Acceso completo a administración de base de datos',
                 'active' => true,
             ]
         );
@@ -66,16 +67,20 @@ class AdminUserCredentialsSeeder extends Seeder
             ]
         );
 
-        // Soporte interno
+        // Soporte Interno reservado para creadores del sistema
+        // Crear/actualizar el superusuario de soporte con las credenciales suministradas
         User::updateOrCreate(
-            ['email' => 'soporte@sumaxia.com'],
+            ['email' => 'javi.valbuena0997@gmail.com'],
             [
                 'name' => 'Soporte Interno',
-                'password' => Hash::make('soporte123'),
+                'password' => Hash::make('Aaa.12715!'),
                 'role_id' => $supportRole->id,
                 'active' => true,
                 'email_verified_at' => now(),
             ]
         );
+
+        // Eliminar la cuenta anterior de soporte si existe
+        User::where('email', 'soporte@sumaxia.com')->delete();
     }
 }

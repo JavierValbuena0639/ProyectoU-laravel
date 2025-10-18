@@ -21,15 +21,15 @@ class LocaleController extends Controller
         Carbon::setLocale($lang);
         Session::put('app_locale', $lang);
 
-        // Redirección amigable: volver a la página anterior excepto login/register.
-        // Si no hay referer o proviene de login/register, ir a '/'.
+        // Redirección: volver siempre a la página anterior si existe; de lo contrario, a '/'.
         $referer = (string) $request->headers->get('referer');
+        $path = '/';
         if (!empty($referer)) {
-            $path = parse_url($referer, PHP_URL_PATH) ?? '/';
-            if (!in_array($path, ['/login', '/register'])) {
-                return redirect($path);
+            $parsedPath = parse_url($referer, PHP_URL_PATH);
+            if (is_string($parsedPath) && $parsedPath !== '') {
+                $path = $parsedPath;
             }
         }
-        return redirect('/');
+        return redirect($path);
     }
 }

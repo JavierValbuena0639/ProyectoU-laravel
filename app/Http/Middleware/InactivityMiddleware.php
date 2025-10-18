@@ -23,11 +23,22 @@ class InactivityMiddleware
             $timeoutSeconds = 5 * 60; // 5 minutos
 
             if ($last > 0 && ($now - $last) > $timeoutSeconds) {
-                // Cerrar sesión por inactividad y redirigir a login
-                Auth::logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-                return redirect('/login')->with('status', 'Sesión expirada por inactividad');
+                // Respetar "Recordarme": si existe cookie de recaller, no cerrar sesión
+                $hasRemember = false;
+                try {
+                    $hasRemember = $request->cookies->has(Auth::guard()->getRecallerName());
+                } catch (\Throwable $e) {
+                    $hasRemember = false;
+                }
+
+                if (!$hasRemember) {
+                    // Cerrar sesión por inactividad y redirigir a login
+                    Auth::logout();
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+                    return redirect('/login')->with('status', 'Sesión expirada por inactividad');
+                }
+                // Con "Recordarme", mantener sesión activa a pesar de la inactividad
             }
 
             // Actualizar marca de tiempo

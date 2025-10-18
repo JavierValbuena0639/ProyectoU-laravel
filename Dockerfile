@@ -1,3 +1,12 @@
+FROM node:18 AS node_builder
+
+# Preparar build de assets con Vite
+WORKDIR /app
+COPY package.json ./
+# Copiar el resto del proyecto para que el plugin de Laravel Vite resuelva rutas correctamente
+COPY . .
+RUN npm install && npm run build
+
 FROM php:8.2-fpm
 
 # Instalar dependencias del sistema
@@ -43,6 +52,9 @@ COPY composer.json composer.lock ./
 
 # Instalar dependencias de Composer
 RUN composer install --no-dev --optimize-autoloader
+
+# Copiar assets compilados desde el stage de Node
+COPY --from=node_builder /app/public/build /var/www/public/build
 
 # Cambiar propietario de los archivos
 RUN chown -R www:www /var/www

@@ -10,6 +10,7 @@ use App\Models\Account;
 use App\Models\Payroll;
 use App\Models\Audit;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Str;
 
 class ReportsController extends Controller
 {
@@ -93,6 +94,28 @@ class ReportsController extends Controller
             'accountingCount','payrollCount','quotesCount','recentAudits'
         );
 
+        // Registrar en sesión como "reciente" para mostrar en la tabla y permitir eliminar
+        try {
+            $type = $request->get('type', 'summary');
+            $recent = session('recent_reports', []);
+            $recent[] = [
+                'id' => Str::uuid()->toString(),
+                'name' => $this->resolveReportName($type),
+                'period' => $this->resolvePeriodLabel($period, $start, $end),
+                'period_key' => $period,
+                'type' => $type,
+                'generated' => now()->format('d/m/Y H:i'),
+                'format' => strtoupper($format),
+            ];
+            // Mantener solo los últimos 20
+            if (count($recent) > 20) {
+                $recent = array_slice($recent, -20);
+            }
+            session(['recent_reports' => $recent]);
+        } catch (\Throwable $e) {
+            // No interrumpir exportación ante errores de sesión
+        }
+
         if ($format === 'csv') {
             return $this->exportCsv($data);
         } elseif ($format === 'excel') {
@@ -102,6 +125,19 @@ class ReportsController extends Controller
         }
 
         abort(404);
+    }
+
+    /**
+     * Elimina un reporte de la lista reciente almacenada en sesión.
+     */
+    public function delete(string $id, Request $request)
+    {
+        $reports = session('recent_reports', []);
+        $filtered = array_values(array_filter($reports, function($r) use ($id) {
+            return ($r['id'] ?? '') !== $id;
+        }));
+        session(['recent_reports' => $filtered]);
+        return response()->json(['status' => 'ok']);
     }
 
     protected function exportCsv(array $data)
@@ -199,5 +235,39 @@ class ReportsController extends Controller
         return response($pdf)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'attachment; filename="reports.pdf"');
+    }
+
+    protected function resolveReportName(string $type): string
+    {
+        switch ($type) {
+            case 'employees':
+                return 'Detalle por Empleado';
+            case 'departments':
+                return 'Costos por Departamento';
+            case 'taxes':
+                return 'Deducciones e Impuestos';
+            case 'compare':
+                return 'Comparativo Mensual';
+            default:
+                return 'Resumen de Nómina';
+        }
+    }
+
+    protected function resolvePeriodLabel(string $period, \Illuminate\Support\Carbon $start, \Illuminate\Support\Carbon $end): string
+    {
+        switch ($period) {
+            case 'today':
+                return 'Hoy';
+            case 'week':
+                return 'Esta semana';
+            case 'month':
+                return $start->isoFormat('MMMM YYYY');
+            case 'quarter':
+                return 'Q' . $start->quarter . ' ' . $start->year;
+            case 'year':
+                return (string) $start->year;
+            default:
+                return $start->toDateString() . ' - ' . $end->toDateString();
+        }
     }
 }

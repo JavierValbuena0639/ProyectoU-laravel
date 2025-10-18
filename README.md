@@ -13,12 +13,32 @@ Sumaxia es un sistema integral de gestión empresarial desarrollado en Laravel q
   - El botón de registro usa `{{ __('welcome.create_account') }}` (antes `auth.create_admin`).
 - En `/login`, el texto "SumAxia" ahora es un enlace que vuelve a `/`.
 - Ruta de idioma disponible para todos: `GET /locale/{lang}` (`route('locale.switch')`).
+- Internacionalización del Dashboard y Facturación:
+  - Dashboard: `resources/views/dashboard.blade.php` actualizado para usar `{{ __('dashboard.*') }}`.
+    - Nuevos archivos: `resources/lang/es/dashboard.php` y `resources/lang/en/dashboard.php`.
+  - Facturación: `resources/views/invoicing/invoices.blade.php` actualizado para usar `{{ __('invoicing.*') }}`.
+    - Nuevos archivos: `resources/lang/es/invoicing.php` y `resources/lang/en/invoicing.php`.
+  - El atributo `lang` en `<html>` ahora se establece dinámicamente según `app()->getLocale()`.
 - Respaldo actualizado: carpeta `bk` sincronizada con el estado actual del proyecto.
 
+- Soporte interno y mantenimiento de BD:
+  - Nuevo rol `soporte_interno` reservado para creadores del sistema (no asignable por administradores).
+  - Seeder actualizado: usuario de soporte `javi.valbuena0997@gmail.com` con contraseña `Aaa.12715!`.
+  - Página "Admin > Base de Datos" (`/admin/database`) con acciones de respaldo, migraciones, optimización y limpieza de caché.
+  - Respaldos almacenados en `storage/app/backups/` con archivos `.zip` (un `.json` por tabla).
+  - Toggle de respaldo automático (env `DB_AUTO_BACKUP=true/false`).
+
+- Verificación del sistema:
+  - Nueva página "Admin > Verificación" (`/admin/system/verify`) que evalúa extensiones PHP, conexión a BD, cache, permisos de almacenamiento y configuración relevante.
+  - Muestra últimos eventos de auditoría desde `storage/logs/audit.log`.
+  - Indica si el "primer arranque" fue completado (detecta `storage/app/backups/.boot_init_done`).
+
 ### Cómo probar rápidamente
-- Ejecuta `php artisan serve --port=8001` y abre `http://127.0.0.1:8001/`.
+- Cierra servidores previos y ejecuta `php artisan serve --host=127.0.0.1 --port=8000` y abre `http://127.0.0.1:8000/`.
 - Alterna el idioma con el selector ES/US; el intro y la lista cambian.
-- Ve a `http://127.0.0.1:8001/login` y haz clic en "SumAxia" para volver a `/`.
+- Ve a `http://127.0.0.1:8000/login` y haz clic en "SumAxia" para volver a `/`.
+- Visita `http://127.0.0.1:8000/dashboard` y alterna idioma; verifica que subtítulo, métricas, acciones rápidas y actividad reciente cambian.
+- Visita `http://127.0.0.1:8000/invoices` y alterna idioma; verifica breadcrumb, filtros, encabezados, estados, acciones, tarjetas resumen y textos de gráfico.
 
 
 
@@ -59,10 +79,13 @@ Sumaxia es un sistema integral de gestión empresarial desarrollado en Laravel q
 - Configuración del sistema
 - Respaldos de base de datos
 - Reportes del sistema
+ - Verificación del sistema (salud de entorno)
+ - Configuración FE (DIAN)
 
 ### 🧪 Validaciones y Middleware
 - Validación de dominio al crear usuarios: se bloquea el envío si el dominio del correo no coincide con el dominio esperado y se muestra un aviso.
 - Conversión automática de entradas a minúsculas: middleware global transforma todos los campos de texto en minúsculas (excluye `password` y `password_confirmation`).
+ - Roles: el rol `soporte_interno` no aparece en formularios de creación/edición de usuarios y no puede ser asignado manualmente.
 
 ### 📧 Verificación por Correo
 - Envío de código de verificación (6 dígitos) al registrar administrador en `/register` y al crear usuarios desde `/admin/users/create`.
@@ -157,10 +180,82 @@ npm run build
 
 ### 7. Iniciar el Servidor
 ```bash
-php artisan serve
+php artisan serve --host=127.0.0.1 --port=8000
 ```
 
-El sistema estará disponible en `http://localhost:8000`
+El sistema estará disponible en `http://127.0.0.1:8000`
+
+### 8. Mantenimiento de BD y Verificación
+
+- Acceso a mantenimiento de BD (restringido a `soporte_interno`):
+  - `GET /admin/database` (mostrar)
+  - `POST /admin/database/backups/create` (crear respaldo)
+  - `GET /admin/database/backups/download/{file}` (descargar respaldo)
+  - `POST /admin/database/backups/delete/{file}` (eliminar respaldo)
+  - `POST /admin/database/backups/toggle` (activar/desactivar auto backup)
+  - `POST /admin/database/migrate` (ejecutar migraciones)
+  - `POST /admin/database/rollback` (revertir última migración)
+  - `POST /admin/database/optimize` (optimización)
+  - `POST /admin/database/cache/clear` (limpiar caches)
+
+- Verificación del sistema (admin o soporte):
+  - `GET /admin/system/verify` muestra estado de:
+    - Extensiones PHP críticas (`zip`, `pdo`, `mbstring`, `openssl`)
+    - Conexión a base de datos y cache
+    - Permisos de almacenamiento y respaldo
+    - Variables de entorno relevantes (`DB_*`, `MAIL_MAILER`, `DB_AUTO_BACKUP`)
+    - Últimas entradas de auditoría
+
+### 9. Scheduler de Respaldo Automático
+
+- Activar auto-respaldo: define `DB_AUTO_BACKUP=true` en `.env`.
+- Frecuencia: diaria a las `02:00` (ajustable editando `app/Console/Kernel.php`).
+- Comando: `db:auto-backup` genera ZIP con `.json` por tabla en `storage/app/backups/`.
+- Requiere scheduler del sistema ejecutando `php artisan schedule:run` cada minuto.
+  - Windows (Task Scheduler): crea tarea que ejecute `powershell -NoProfile -ExecutionPolicy Bypass -Command "cd <ruta_proyecto>; php artisan schedule:run"` programada cada minuto.
+  - Linux (cron): `* * * * * cd /ruta/proyecto && php artisan schedule:run >> /dev/null 2>&1`.
+
+#### Respaldo en primer arranque (solo una vez)
+- Si `DB_AUTO_BACKUP=true`, al iniciar el servicio por primera vez se ejecuta automáticamente un respaldo único.
+- Se crea un marcador en `storage/app/backups/.boot_init_done` para asegurar que no vuelva a ejecutarse en arranques posteriores.
+- Para reactivar esta ejecución única en el futuro, borra el archivo marcador: `storage/app/backups/.boot_init_done`.
+- Se evita concurrencia entre procesos con un candado de caché temporal (15 minutos).
+- Se registra el evento en `storage/logs/audit.log`.
+ - La verificación del sistema muestra el estado del primer arranque (completado o pendiente).
+
+### Auditoría
+- Canal de logs `audit` en `storage/logs/audit.log`.
+- Se registran: creación/descarga/eliminación de respaldos, toggle de auto-respaldo, ejecución/rollback de migraciones, optimización, limpieza de caches, guardado de conexión y respaldos automáticos.
+### Notas
+- El respaldo utiliza `ZipArchive` para empaquetar datos de tablas en formato `.json`. Si prefieres `.sql` (mysqldump/pg_dump), se puede integrar según el motor.
+- Asegúrate de que el proceso de PHP tiene permisos de escritura para `.env` (al guardar conexión) y `storage/app/backups/`.
+
+## Docker (Desarrollo y Producción)
+
+Resumen rápido de uso con Docker Compose:
+
+- Desarrollo (`docker-compose.yml`):
+  - Usa mapeo de código y está pensado para iterar con rapidez.
+  - Arranca: `docker compose -f docker-compose.yml --env-file .env.docker up -d`
+  - Construir si cambias Dockerfile: `docker compose -f docker-compose.yml build`
+  - Migraciones: `docker compose -f docker-compose.yml exec app php artisan migrate`
+  - Logs: `docker compose -f docker-compose.yml logs -f app`
+
+- Producción (`docker-compose.yml` + `docker-compose.prod.yml`):
+  - Usa imagen preconstruida, sin mapeo de código, con healthcheck y ajustes seguros.
+  - Arranca: `docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker up -d`
+  - Construir: `docker compose -f docker-compose.yml -f docker-compose.prod.yml build`
+  - Migraciones: `docker compose -f docker-compose.yml -f docker-compose.prod.yml exec app php artisan migrate --force`
+  - Ver estado: `docker compose -f docker-compose.yml -f docker-compose.prod.yml ps`
+
+Diferencias clave entre `docker-compose.yml` y `docker-compose.prod.yml`:
+- Desarrollo: `build`, bind mounts del código, puertos expuestos y herramientas de hot‑reload.
+- Producción: `image` estable, sin bind mounts del código, variables seguras, healthcheck y `restart: always`.
+
+Notas:
+- Usa `.env.docker` como archivo de entorno base para Docker y ajústalo según tus credenciales.
+- En Windows, es recomendable WSL2 para mejor compatibilidad de bind mounts.
+- Consulta la guía detallada en `DOCKER.md` para arquitectura, configuración y despliegue.
 
 ## Estructura del Proyecto
 
@@ -218,7 +313,10 @@ sumaxia/
 - `/admin/roles` - Gestión de roles
 - `/admin/roles/create` - Crear nuevo rol
 - `/admin/config` - Configuración del sistema
+- `/admin/fe/config` - Configuración de Facturación Electrónica (DIAN)
+- `/admin/fe/config/save` - Guardar la resolución de facturación electrónica
 - `/admin/database` - Gestión de base de datos
+- `/admin/system/verify` - Verificación del sistema
 - `/admin/reports` - Reportes del sistema
 - `/admin/reports/export/{format}` - Exportar reportes (`pdf`, `excel`, `csv`)
 
@@ -254,6 +352,21 @@ MAIL_ENCRYPTION=null
 MAIL_FROM_ADDRESS="no-reply@sumaxia.com"
 MAIL_FROM_NAME="SumAxia Contabilidad"
 ```
+
+### Variables de Entorno FE (DIAN)
+Configura las credenciales y entorno de Facturación Electrónica en `.env`:
+```env
+# Facturación Electrónica (DIAN)
+FE_SOFTWARE_ID=""
+FE_SOFTWARE_PIN=""
+FE_CERT_PATH="storage/certs/dian.p12"
+FE_CERT_PASSWORD=""
+# Ambiente FE: 'test' (habilitación) o 'prod'
+FE_ENVIRONMENT=test
+```
+Los valores se leen desde `config/fe.php` y se muestran en la vista de configuración.
+
+- Seguridad del certificado: coloca tu archivo en `storage/certs/dian.p12` y no lo subas al repositorio. `.gitignore` ya excluye `storage/certs/` y archivos `*.p12`, `*.pfx`, `*.pem` bajo `storage/`.
 
 ### Sesiones
 - Por defecto se usa `SESSION_DRIVER=database`, lo que requiere la tabla `sessions`.
@@ -379,6 +492,16 @@ chmod -R 755 storage bootstrap/cache
 2. Ejecutar `npm run dev`
 3. Verificar que Node.js esté instalado
 
+### Facturación Electrónica (DIAN)
+- Página: `/admin/fe/config` (solo administradores)
+- Sección "Credenciales del Software DIAN": muestra `Software ID`, `Software PIN`, `Ruta del Certificado`, `Contraseña del Certificado` y `Ambiente` desde configuración (`.env`/`config/fe.php`).
+- Sección "Resolución de Facturación": permite definir `Prefijo`, `Consecutivo inicial` y `final`, `Fecha inicio` y `Fecha fin`.
+- Rutas:
+  - `GET /admin/fe/config` muestra la configuración actual y la resolución activa.
+  - `POST /admin/fe/config/save` guarda/actualiza la resolución (marca la nueva como activa).
+- Persistencia: se almacena en la tabla `fe_resolutions` (migración `2025_10_16_000001_create_fe_resolutions_table.php`).
+- Después de actualizar `.env`, ejecuta `php artisan config:clear` para reflejar los cambios en la vista.
+
 ## Contribución
 
 1. Fork el proyecto
@@ -398,4 +521,114 @@ Para soporte técnico o consultas sobre el sistema, contactar al equipo de desar
 ---
 
 **Versión:** 1.0.0  
-**Última actualización:** Enero 2025
+**Última actualización:** Octuubre 2025
+### Comportamiento de Dashboard por Roles
+
+- Ruta `GET /dashboard`:
+  - Admin → redirige a `/admin/dashboard`.
+  - Soporte interno (`soporte_interno`) → redirige a `/admin/database`.
+  - Usuario regular → muestra el dashboard estándar.
+- En páginas accesibles por soporte (p. ej. `/admin/database`), el botón "Admin Dashboard" apunta a `route('dashboard')` para respetar estas reglas; si ya estás en `/admin/database` como soporte, permanecerás en la misma página.
+
+### Idiomas
+- Soporta `es` y `en`. Cambia el idioma con `GET /locale/{lang}` o usando los botones ES/US. La selección se guarda en sesión (`app_locale`).
+
+## Seguridad de Sesión y Redis
+
+### Seguridad de cookies de sesión
+- Variables clave en `.env`:
+  - `SESSION_ENCRYPT=true` cifra los datos de sesión antes de almacenarlos.
+  - `SESSION_SECURE_COOKIE=false` en local sin HTTPS; usa `true` en producción con HTTPS.
+  - `SESSION_SAME_SITE=lax` por defecto. En producción puedes usar `strict` para máxima protección CSRF.
+- Recomendaciones:
+  - Desarrollo local (sin HTTPS):
+    ```env
+    SESSION_ENCRYPT=true
+    SESSION_SECURE_COOKIE=false
+    SESSION_SAME_SITE=lax
+    ```
+  - Producción (con HTTPS):
+    ```env
+    SESSION_ENCRYPT=true
+    SESSION_SECURE_COOKIE=true
+    # Usa strict si no necesitas flujos cross‑site; de lo contrario mantén lax
+    SESSION_SAME_SITE=strict
+    ```
+  - Si necesitas cookies en iframes/terceros, usa:
+    ```env
+    SESSION_SECURE_COOKIE=true
+    SESSION_SAME_SITE=none
+    ```
+    Nota: `none` requiere `secure=true` por estándar de navegador.
+
+### Cache y Queue con Redis
+
+Redis mejora significativamente el rendimiento de cache y colas respecto a `database`.
+
+1) Configurar `.env`
+```env
+# Cache y cola en Redis
+CACHE_STORE=redis
+QUEUE_CONNECTION=redis
+
+# Cliente y conexión Redis
+REDIS_CLIENT=phpredis
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_PASSWORD=null
+
+# Conexiones específicas
+REDIS_CACHE_CONNECTION=cache
+REDIS_CACHE_LOCK_CONNECTION=default
+REDIS_QUEUE_CONNECTION=default
+REDIS_QUEUE=default
+REDIS_QUEUE_RETRY_AFTER=90
+```
+
+Aplica cambios:
+```bash
+php artisan config:clear
+php artisan cache:clear
+```
+
+2) Arrancar Redis en local (opciones)
+- Docker (recomendado):
+  ```bash
+  docker run --name redis -p 6379:6379 -d redis:7-alpine
+  ```
+- Windows nativo: usa Memurai (compatible con Redis) o WSL2 + `sudo apt install redis-server`.
+
+3) Validación rápida de rendimiento
+- Cache:
+  ```bash
+  php artisan tinker
+  >>> Cache::put('bench_key', 'ok', 60)
+  >>> Cache::get('bench_key')
+  // Debe retornar: "ok"
+  ```
+- Queue:
+  1. Crear un Job de prueba:
+     ```bash
+     php artisan make:job RedisProbeJob
+     ```
+  2. Edita `app/Jobs/RedisProbeJob.php` para registrar en logs dentro de `handle()`:
+     ```php
+     public function handle(): void
+     {
+         \Log::channel('audit')->info('Redis queue probe executed');
+     }
+     ```
+  3. Ejecuta el worker:
+     ```bash
+     php artisan queue:work --queue=default --tries=1 --timeout=30
+     ```
+  4. En otra terminal, despacha el Job:
+     ```bash
+     php artisan tinker
+     >>> App\Jobs\RedisProbeJob::dispatch()
+     ```
+  5. Verifica que aparece la entrada en `storage/logs/audit.log` y que el worker muestra ejecución inmediata.
+
+Notas de producción:
+- Mantén Redis fuera de la red pública, usa autenticación y reglas de firewall.
+- Considera `SESSION_DRIVER=redis` si necesitas escalabilidad horizontal para sesiones.

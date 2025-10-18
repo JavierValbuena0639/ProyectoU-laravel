@@ -150,6 +150,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Verificar si es admin o soporte
+     */
+    public function isAdminOrSupport(): bool
+    {
+        return $this->isAdmin() || $this->isSupport();
+    }
+
+    /**
      * Obtener el nombre del rol
      */
     public function getRoleName(): string

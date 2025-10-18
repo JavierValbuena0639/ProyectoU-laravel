@@ -1,4 +1,21 @@
-# Guía de Despliegue con Docker en Linux
+# Guía de Despliegue con Docker (Linux/Windows/macOS)
+
+Nota de actualización (2025):
+- La imagen oficial del proyecto usa PHP-FPM + Nginx gestionados por `supervisord` y un build multi-stage para compilar assets con Vite durante la construcción de la imagen. Ya no es necesario ejecutar Node en producción.
+- Para producción Linux se incluye `docker-compose.prod.yml` sin mapeo de código (usa la imagen construida con assets incluidos) y con `healthcheck` del servicio `app`.
+
+Resumen rápido (Desarrollo y Producción):
+- Desarrollo:
+  - Arranca: `docker compose -f docker-compose.yml --env-file .env.docker up -d`
+  - Construir: `docker compose -f docker-compose.yml build`
+  - Migraciones: `docker compose -f docker-compose.yml exec app php artisan migrate`
+  - Logs: `docker compose -f docker-compose.yml logs -f app`
+- Producción:
+  - Arranca: `docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker up -d`
+  - Construir: `docker compose -f docker-compose.yml -f docker-compose.prod.yml build`
+  - Migraciones: `docker compose -f docker-compose.yml -f docker-compose.prod.yml exec app php artisan migrate --force`
+  - Acceso: `http://localhost:8000/`. phpMyAdmin opcional en `http://localhost:8080/` si está definido.
+
 
 Esta guía te ayudará a desplegar el sistema Sumaxia utilizando Docker en un entorno Linux con MySQL como base de datos.
 
@@ -10,17 +27,60 @@ Esta guía te ayudará a desplegar el sistema Sumaxia utilizando Docker en un en
 - Al menos 2GB de RAM disponible
 - 5GB de espacio en disco
 
+## Arquitectura actual
+
+- Contenedor único para la aplicación con `php-fpm` y `nginx` corriendo bajo `supervisord`.
+- Multi-stage build: se compilan assets con `Vite` (Node 18) durante la construcción y se copian a `public/build`.
+- `docker-compose.prod.yml` elimina el mapeo de código para usar la imagen final y añade `healthcheck`.
+- `docker-compose.yml` mantiene un servicio `node` opcional para desarrollo con hot reload (Windows/macOS/Linux).
+
+## Diferencias entre docker-compose.yml y docker-compose.prod.yml
+
+- Base vs override:
+  - `docker-compose.yml` es la definición base pensada para desarrollo.
+  - `docker-compose.prod.yml` es un override para producción con ajustes de seguridad y robustez.
+- Build vs Image:
+  - Desarrollo: `build: .` y bind mounts del código (`.:/var/www`).
+  - Producción: `image: <repo/app:tag>` sin bind mounts del código, assets ya compilados.
+- Variables y entorno:
+  - Desarrollo: puede usar `.env` y `APP_DEBUG=true`.
+  - Producción: usa `--env-file .env.docker`, `APP_ENV=production`, `APP_DEBUG=false`.
+- Puertos y redes:
+  - Desarrollo: puertos expuestos para probar localmente.
+  - Producción: detrás de proxy/reverse proxy, limitar puertos expuestos.
+- Resiliencia:
+  - Producción: `healthcheck`, `restart: always`, dependencias con condiciones.
+- Servicios auxiliares:
+  - Desarrollo: watchers/hot‑reload.
+  - Producción: mínimo necesario, logging y métricas adecuados.
+
+## Windows/macOS
+
+- Recomendado WSL2 en Windows para mejor rendimiento de bind mounts.
+- Usa siempre `docker compose` (plugin moderno), no `docker-compose` (legacy) cuando sea posible.
+- Ejemplos:
+  - Dev: `docker compose -f docker-compose.yml --env-file .env.docker up -d`
+  - Prod: `docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker up -d`
+
 ## Estructura de Archivos Docker
 
-### 1. Dockerfile
+### 1. Dockerfile (multi-stage: Node + PHP-FPM)
 
-Crea un archivo `Dockerfile` en la raíz del proyecto:
+El `Dockerfile` ya incluido en el repositorio compila assets con Node y construye la imagen final con PHP-FPM + Nginx.
 
 ```dockerfile
-# Usar imagen oficial de PHP con Apache
-FROM php:8.2-apache
+FROM node:18 AS node_builder
 
-# Instalar dependencias del sistema
+WORKDIR /app
+COPY package.json ./
+COPY . .
+RUN npm install && npm run build
+
+FROM php:8.2-fpm
+
+# Limpiar caché
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -29,148 +89,56 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
-    nodejs \
-    npm \
-    default-mysql-client
+    default-mysql-client \
+    nginx \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
 
-# Limpiar caché
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Instalar extensiones PHP
 RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
-# Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Configurar Apache
-RUN a2enmod rewrite
-COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.conf
+COPY docker/php.ini /usr/local/etc/php/conf.d/local.ini
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Establecer directorio de trabajo
-WORKDIR /var/www/html
+WORKDIR /var/www
 
 # Copiar archivos del proyecto
 COPY . .
 
 # Instalar dependencias de PHP
 RUN composer install --no-dev --optimize-autoloader
+COPY --from=node_builder /app/public/build /var/www/public/build
 
 # Instalar dependencias de Node.js y compilar assets
 RUN npm install && npm run build
 
 # Configurar permisos
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 755 /var/www/storage \
+    && chmod -R 755 /var/www/bootstrap/cache
 
 # Exponer puerto
 EXPOSE 80
 
 # Comando de inicio
-CMD ["apache2-foreground"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
 ```
 
-### 2. Docker Compose
+### 2. Docker Compose (desarrollo vs producción)
 
-Crea un archivo `docker-compose.yml` en la raíz del proyecto:
+- Desarrollo: usa `docker-compose.yml` (mapea código y puede incluir servicio `node` para hot reload).
+- Producción Linux: usa `docker-compose.prod.yml` (sin mapeo de código, imagen con assets incluidos, healthcheck del `app`).
 
-```yaml
-version: '3.8'
+Para producción, utiliza el nuevo `docker-compose.prod.yml` ya presente en el repositorio.
 
-services:
-  # Aplicación Laravel
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: sumaxia_app
-    restart: unless-stopped
-    ports:
-      - "8000:80"
-    volumes:
-      - ./storage:/var/www/html/storage
-      - ./bootstrap/cache:/var/www/html/bootstrap/cache
-    environment:
-      - APP_ENV=production
-      - APP_DEBUG=false
-      - DB_CONNECTION=mysql
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_DATABASE=sumaxia
-      - DB_USERNAME=sumaxia_user
-      - DB_PASSWORD=sumaxia_password
-    depends_on:
-      mysql:
-        condition: service_healthy
-    networks:
-      - sumaxia_network
+### 3. Configuración de Nginx y PHP-FPM
 
-  # Base de datos MySQL
-  mysql:
-    image: mysql:8.0
-    container_name: sumaxia_mysql
-    restart: unless-stopped
-    ports:
-      - "3306:3306"
-    environment:
-      MYSQL_DATABASE: sumaxia
-      MYSQL_USER: sumaxia_user
-      MYSQL_PASSWORD: sumaxia_password
-      MYSQL_ROOT_PASSWORD: root_password
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
-      retries: 10
-    networks:
-      - sumaxia_network
+Los archivos de configuración están en `docker/nginx.conf`, `docker/php.ini` y `docker/supervisord.conf`.
 
-  # phpMyAdmin (opcional)
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: sumaxia_phpmyadmin
-    restart: unless-stopped
-    ports:
-      - "8080:80"
-    environment:
-      PMA_HOST: mysql
-      PMA_PORT: 3306
-      PMA_USER: root
-      PMA_PASSWORD: root_password
-    depends_on:
-      - mysql
-    networks:
-      - sumaxia_network
-
-volumes:
-  mysql_data:
-    driver: local
-
-networks:
-  sumaxia_network:
-    driver: bridge
-```
-
-### 3. Configuración de Apache
-
-Crea el directorio `docker/apache/` y el archivo `000-default.conf`:
-
-```apache
-<VirtualHost *:80>
-    ServerName localhost
-    DocumentRoot /var/www/html/public
-
-    <Directory /var/www/html/public>
-        AllowOverride All
-        Require all granted
-    </Directory>
-
-    ErrorLog ${APACHE_LOG_DIR}/error.log
-    CustomLog ${APACHE_LOG_DIR}/access.log combined
-</VirtualHost>
-```
+El `nginx.conf` del proyecto sirve `public/` y redirige a `index.php` cuando corresponde.
 
 ### 4. Script de Inicialización MySQL
 
@@ -254,6 +222,20 @@ VITE_PUSHER_PORT="${PUSHER_PORT}"
 VITE_PUSHER_SCHEME="${PUSHER_SCHEME}"
 VITE_PUSHER_APP_CLUSTER="${PUSHER_APP_CLUSTER}"
 ```
+
+## Flujo de despliegue y pruebas en Linux
+
+- Preparar variables: `cp .env.docker .env` y ajusta claves/credenciales.
+- Construir imagen: `docker compose -f docker-compose.prod.yml build`.
+- Arrancar servicios: `docker compose -f docker-compose.prod.yml up -d`.
+- Comprobar estado: `docker compose -f docker-compose.prod.yml ps` y `docker compose -f docker-compose.prod.yml logs app`.
+- Migraciones y seeds: `docker compose -f docker-compose.prod.yml exec app php artisan migrate --force` y opcionalmente `db:seed`.
+- Pruebas: `docker compose -f docker-compose.prod.yml exec app php vendor/bin/phpunit -d memory_limit=-1`.
+
+Consejos para Linux:
+- Evita `host.docker.internal`; usa nombres de servicio (`mysql`) dentro de la red de Docker.
+- Revisa permisos de `storage/` y `bootstrap/cache/` si montas volúmenes; la imagen ya ajusta permisos por defecto.
+- Si usas SELinux, permite bind mounts o usa volúmenes gestionados por Docker.
 
 ## Instrucciones de Despliegue
 

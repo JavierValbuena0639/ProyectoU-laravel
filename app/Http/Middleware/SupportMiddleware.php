@@ -16,14 +16,12 @@ class SupportMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Verificar si el usuario está autenticado
         if (!Auth::check()) {
             return redirect()->route('login');
         }
 
-        // Verificar si el usuario es soporte interno
         if (!Auth::user()->isSupport()) {
-            abort(403, 'No tienes permisos para acceder a esta sección.');
+            abort(403, 'Acceso restringido a soporte interno.');
         }
 
         return $next($request);

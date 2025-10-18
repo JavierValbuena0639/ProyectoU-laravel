@@ -15,7 +15,7 @@
             <div class="mx-auto h-16 w-16 bg-green-600 rounded-full flex items-center justify-center mb-4">
                 <i class="fas fa-user-shield text-white text-2xl"></i>
             </div>
-            <h2 class="text-3xl font-bold text-gray-900 mb-2">SumAxia</h2>
+            <a href="{{ url('/') }}" class="text-3xl font-bold text-gray-900 mb-2 inline-block">SumAxia</a>
             <p class="text-gray-600">{{ __('auth.title_register') }}</p>
         </div>
 
