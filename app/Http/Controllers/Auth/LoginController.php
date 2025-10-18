@@ -58,7 +58,7 @@ class LoginController extends Controller
             if (method_exists($user, 'isSupport') && $user->isSupport()) {
                 return redirect()->intended('/admin/database');
             }
-
+            
             return redirect()->intended('/dashboard');
         }
 

@@ -57,7 +57,7 @@
 
         <!-- Footer -->
         <div class="text-center text-sm text-gray-500">
-            <p>&copy; 2024 SumAxia. Todos los derechos reservados.</p>
+            <p>{{ __('common.copyright', ['year' => date('Y'), 'company' => 'SumAxia']) }}</p>
         </div>
 
         <!-- Idioma (igual que /login) -->

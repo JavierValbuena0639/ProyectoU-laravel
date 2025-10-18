@@ -19,6 +19,11 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-gray-600">Bienvenido, {{ Auth::user()->name ?? 'Usuario' }}</span>
+                    <div class="flex items-center space-x-2 text-sm">
+            <a href="{{ route('locale.switch', ['lang' => 'es']) }}" class="{{ app()->getLocale() === 'es' ? 'font-semibold text-blue-600' : 'text-gray-600 hover:text-blue-600' }}">ES</a>
+                        <span class="text-gray-300">|</span>
+            <a href="{{ route('locale.switch', ['lang' => 'en']) }}" class="{{ app()->getLocale() === 'en' ? 'font-semibold text-blue-600' : 'text-gray-600 hover:text-blue-600' }}">EN</a>
+                    </div>
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
                         <button type="submit" class="text-sm text-red-600 hover:text-red-800">
@@ -42,7 +47,7 @@
                 <li>
                     <div class="flex items-center">
                         <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-                        <a href="{{ route('payroll') }}" class="text-gray-700 hover:text-blue-600">Nómina</a>
+                        <a href="{{ route('payroll.index') }}" class="text-gray-700 hover:text-blue-600">Nómina</a>
                     </div>
                 </li>
                 <li>
@@ -328,7 +333,7 @@
 
                 <!-- Buttons -->
                 <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                    <a href="{{ route('payroll') }}" 
+                    <a href="{{ route('payroll.index') }}" 
                        class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <i class="fas fa-times mr-2"></i>Cancelar
                     </a>

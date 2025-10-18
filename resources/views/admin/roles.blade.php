@@ -20,6 +20,13 @@
                 
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-gray-700">{{ Auth::user()->name }}</span>
+                    @php $currentLocale = app()->getLocale(); @endphp
+                    <div class="flex items-center space-x-2">
+                        <a href="{{ route('locale.switch', ['lang' => 'es']) }}" aria-label="Español" title="Español"
+                           class="px-2 py-1 rounded border {{ $currentLocale === 'es' ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-700' }} hover:border-blue-500 hover:text-blue-600">🇪🇸</a>
+                        <a href="{{ route('locale.switch', ['lang' => 'en']) }}" aria-label="English" title="English"
+                           class="px-2 py-1 rounded border {{ $currentLocale === 'en' ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-700' }} hover:border-blue-500 hover:text-blue-600">🇺🇸</a>
+                    </div>
                     <a href="{{ route('admin.dashboard') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
                         <i class="fas fa-home mr-1"></i>{{ __('common.admin_panel') }}
                     </a>
@@ -65,6 +72,29 @@
                 <i class="fas fa-plus mr-2"></i>Nuevo Rol
             </a>
         </div>
+
+        <!-- Último rol creado -->
+        @php
+            $latestRole = \App\Models\Role::orderBy('created_at', 'desc')->first();
+        @endphp
+        @if($latestRole)
+        <div class="mb-6">
+            <div class="bg-white rounded-lg shadow p-4 flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-indigo-100 text-indigo-600">
+                        <i class="fas fa-shield-alt text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <div class="text-sm text-gray-500">Último rol creado</div>
+                        <div class="text-lg font-semibold text-gray-900">{{ $latestRole->display_name ?? $latestRole->name }}</div>
+                    </div>
+                </div>
+                <button id="latestRoleAction" data-role-id="{{ $latestRole->id }}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                    <i class="fas fa-play mr-2"></i>Ejecutar acción
+                </button>
+            </div>
+        </div>
+        @endif
 
         <!-- Roles Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -309,5 +339,38 @@
             </div>
         </div>
     </div>
+
+    <!-- Overlay de carga global -->
+    <div id="page-loader" class="fixed inset-0 bg-gray-900 bg-opacity-30 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow p-6 flex items-center space-x-3">
+            <i class="fas fa-spinner fa-spin text-indigo-600 text-2xl"></i>
+            <div>
+                <p class="text-sm text-gray-500">Ejecutando acción...</p>
+                <p class="text-sm font-medium text-gray-900">Por favor, espere</p>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('latestRoleAction');
+            const loader = document.getElementById('page-loader');
+            if (btn && loader) {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Deshabilitar botón y mostrar loader
+                    btn.disabled = true;
+                    btn.classList.add('opacity-75', 'cursor-not-allowed');
+                    loader.classList.remove('hidden');
+
+                    // Simulación de ejecución; en producción, remover timeout si hay navegación/solicitud real
+                    setTimeout(() => {
+                        loader.classList.add('hidden');
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                    }, 1500);
+                });
+            }
+        });
+    </script>
 </body>
 </html>

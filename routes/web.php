@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\DatabaseController as AdminDatabaseController;
+use App\Http\Controllers\Admin\SystemController as AdminSystemController;
+use App\Http\Controllers\Admin\FeController;
 use App\Http\Controllers\Auth\RegisterController;
 
 // Ruta principal - muestra panel de bienvenida y redirige a /login en 30s
@@ -32,8 +34,8 @@ Route::post('/logout', function () {
     return redirect()->route('login');
 })->name('logout');
 
-// Rutas protegidas
-Route::middleware(['auth', 'inactive'])->group(function () {
+    // Rutas protegidas
+    Route::middleware(['auth', 'inactive'])->group(function () {
     Route::get('/dashboard', function () {
         $user = Auth::user();
         if ($user && method_exists($user, 'isAdmin') && $user->isAdmin()) {
@@ -83,8 +85,12 @@ Route::middleware(['auth', 'inactive'])->group(function () {
         })->name('config');
         Route::post('/config/save', [\App\Http\Controllers\Admin\SettingsController::class, 'save'])->name('config.save');
         Route::post('/config/unsubscribe', [\App\Http\Controllers\Admin\SettingsController::class, 'unsubscribe'])->name('config.unsubscribe');
-        
-        // Base de datos: las rutas se definen fuera de este grupo para soporte
+
+        // Base de datos: movido fuera del grupo admin para permitir acceso a soporte
+
+        // Facturación Electrónica (DIAN) - Configuración (solo admin)
+        Route::get('/fe/config', [FeController::class, 'index'])->name('fe.config');
+        Route::post('/fe/config/save', [FeController::class, 'save'])->name('fe.config.save');
         
         // Rutas para reportes
         Route::get('/reports', function () {
@@ -94,14 +100,34 @@ Route::middleware(['auth', 'inactive'])->group(function () {
             ->name('reports.export');
     });
 
-    // Base de datos: acceso de lectura para admin y soporte, operaciones solo soporte
+    // Base de datos (compartido admin o soporte)
     Route::middleware(['admin_or_support'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/database', [AdminDatabaseController::class, 'index'])->name('database');
+        Route::get('/system/verify', [AdminSystemController::class, 'verify'])->name('system.verify');
     });
 
+    // Exportación de reportes accesible para cualquier usuario autenticado (no admin)
+    Route::get('/reports/export/{format}', [\App\Http\Controllers\Admin\ReportsController::class, 'export'])
+        ->name('reports.export');
+
+    // Eliminación de reportes recientes (almacenados en sesión)
+    Route::post('/reports/delete/{id}', [\App\Http\Controllers\Admin\ReportsController::class, 'delete'])
+        ->name('reports.delete');
+
+    // Acciones de BD solo para soporte interno
     Route::middleware(['support'])->prefix('admin')->name('admin.')->group(function () {
         Route::post('/database/test', [AdminDatabaseController::class, 'testConnection'])->name('database.test');
         Route::post('/database/save', [AdminDatabaseController::class, 'saveConnection'])->name('database.save');
+        // Respaldos
+        Route::post('/database/backups/create', [AdminDatabaseController::class, 'createBackup'])->name('database.backups.create');
+        Route::get('/database/backups/download/{file}', [AdminDatabaseController::class, 'downloadBackup'])->name('database.backups.download');
+        Route::post('/database/backups/delete/{file}', [AdminDatabaseController::class, 'deleteBackup'])->name('database.backups.delete');
+        Route::post('/database/backups/toggle', [AdminDatabaseController::class, 'toggleAutoBackup'])->name('database.backups.toggle');
+        // Migraciones y mantenimiento
+        Route::post('/database/migrate', [AdminDatabaseController::class, 'runMigrations'])->name('database.migrate');
+        Route::post('/database/rollback', [AdminDatabaseController::class, 'rollbackMigrations'])->name('database.rollback');
+        Route::post('/database/optimize', [AdminDatabaseController::class, 'optimizeDatabase'])->name('database.optimize');
+        Route::post('/database/cache/clear', [AdminDatabaseController::class, 'clearCache'])->name('database.cache.clear');
     });
     
     // Rutas de contabilidad

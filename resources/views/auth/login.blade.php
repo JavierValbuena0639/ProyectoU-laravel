@@ -113,9 +113,6 @@
                         <strong>Admin:</strong> admin@sumaxia.com / admin123
                     </div>
                     <div class="bg-gray-50 p-2 rounded">
-                        <strong>Soporte Interno:</strong> soporte@sumaxia.com / soporte123
-                    </div>
-                    <div class="bg-gray-50 p-2 rounded">
                         <strong>Usuario:</strong> user@sumaxia.com / user123
                     </div>
                 </div>
@@ -124,7 +121,7 @@
 
         <!-- Footer -->
         <div class="text-center text-sm text-gray-500">
-            <p>&copy; 2024 SumAxia. Todos los derechos reservados.</p>
+            <p>{{ __('common.copyright', ['year' => date('Y'), 'company' => 'SumAxia']) }}</p>
         </div>
 
         <!-- Idioma -->
