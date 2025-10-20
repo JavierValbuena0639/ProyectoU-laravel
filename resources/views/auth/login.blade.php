@@ -21,7 +21,17 @@
 
         <!-- Formulario de login -->
         <div class="bg-white rounded-lg shadow-xl p-8">
-            <form method="POST" action="{{ route('login') }}" class="space-y-6">
+            @if (session('status'))
+                <div class="mb-4 p-3 rounded bg-green-50 border border-green-200 text-green-700 text-sm">
+                    {{ session('status') }}
+                </div>
+            @endif
+            @if (session('error'))
+                <div class="mb-4 p-3 rounded bg-red-50 border border-red-200 text-red-700 text-sm">
+                    {{ session('error') }}
+                </div>
+            @endif
+            <form id="login_form" method="POST" action="{{ route('login') }}" class="space-y-6">
                 @csrf
                 
                 <!-- Email -->
@@ -72,7 +82,7 @@
                     @enderror
                 </div>
 
-                <!-- Remember me -->
+                <!-- Remember me + Forgot -->
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
                         <input 
@@ -85,9 +95,9 @@
                             {{ __('auth.remember') }}
                         </label>
                     </div>
-                    <a href="#" class="text-sm text-blue-600 hover:text-blue-500">
+                    <button type="button" id="forgot_pw_btn" class="text-sm text-blue-600 hover:text-blue-500">
                         ¿Olvidaste tu contraseña?
-                    </a>
+                    </button>
                 </div>
 
                 <!-- Submit button -->
@@ -104,6 +114,11 @@
             <div class="mt-4 text-center">
                 <p class="text-sm text-gray-600">{{ __('auth.no_account') }} <a href="{{ route('register') }}" class="text-blue-600 hover:text-blue-500">{{ __('auth.create_admin') }}</a></p>
             </div>
+            
+            <form id="forgot_pw_form" method="POST" action="{{ route('password.email') }}" class="hidden">
+                @csrf
+                <input type="hidden" name="email" value="">
+            </form>
 
             <!-- Usuarios demo -->
             <div class="mt-6 pt-6 border-t border-gray-200">
@@ -142,6 +157,56 @@
                     if(icon){
                         icon.classList.toggle('fa-eye');
                         icon.classList.toggle('fa-eye-slash');
+                    }
+                });
+            }
+
+            var forgotBtn = document.getElementById('forgot_pw_btn');
+            var forgotForm = document.getElementById('forgot_pw_form');
+            var emailInput = document.getElementById('email');
+            if (forgotBtn && forgotForm && emailInput) {
+                forgotBtn.addEventListener('click', function(){
+                    var val = (emailInput.value || '').trim();
+                    if (!val) {
+                        alert('Por favor ingresa tu correo en el campo de email.');
+                        return;
+                    }
+                    // Validación de formato de email en cliente
+                    if (!emailInput.checkValidity()) {
+                        alert('Por favor ingresa un correo electrónico válido.');
+                        return;
+                    }
+                    forgotForm.querySelector('input[name="email"]').value = val;
+                    forgotForm.submit();
+                });
+            }
+
+            // Persistencia del email con Remember Me
+            var loginForm = document.getElementById('login_form');
+            var rememberChk = document.getElementById('remember');
+            var emailInput = document.getElementById('email');
+
+            try {
+                var savedRemember = localStorage.getItem('remember_me_checked') === 'true';
+                var savedEmail = localStorage.getItem('remembered_email') || '';
+                if (savedRemember && savedEmail && emailInput) {
+                    emailInput.value = savedEmail;
+                    if (rememberChk) rememberChk.checked = true;
+                }
+            } catch (e) { /* ignore storage errors */ }
+
+            if (loginForm) {
+                loginForm.addEventListener('submit', function(){
+                    if (rememberChk && rememberChk.checked && emailInput) {
+                        try {
+                            localStorage.setItem('remember_me_checked', 'true');
+                            localStorage.setItem('remembered_email', (emailInput.value || '').trim());
+                        } catch (e) { /* ignore storage errors */ }
+                    } else {
+                        try {
+                            localStorage.removeItem('remember_me_checked');
+                            localStorage.removeItem('remembered_email');
+                        } catch (e) { /* ignore storage errors */ }
                     }
                 });
             }

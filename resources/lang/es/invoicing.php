@@ -23,6 +23,7 @@ return [
         'edit' => 'Editar',
         'pdf' => 'PDF',
         'send' => 'Enviar',
+        'send_to_dian' => 'Enviar a DIAN',
         'delete' => 'Eliminar',
     ],
 
@@ -58,4 +59,7 @@ return [
         'monthly_income_chart' => 'Gráfico de ingresos mensuales',
         'chartjs_pending' => 'Integración con Chart.js pendiente',
     ],
+
+    'sent_to_dian_success' => 'Factura enviada/puesta en cola hacia DIAN.',
+    'sent_to_dian_error' => 'Error al enviar la factura a DIAN.',
 ];

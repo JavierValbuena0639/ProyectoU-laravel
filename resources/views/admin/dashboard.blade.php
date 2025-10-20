@@ -120,6 +120,18 @@
                     </div>
                 </div>
             </a>
+
+            <a href="{{ route('admin.fe.config') }}" class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-indigo-100 text-indigo-600">
+                        <i class="fas fa-file-signature text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-semibold text-gray-900">{{ __('admin.quick_actions_fe_title') }}</h3>
+                        <p class="text-sm text-gray-600">{{ __('admin.quick_actions_fe_desc') }}</p>
+                    </div>
+                </div>
+            </a>
         </div>
 
         <!-- System Statistics -->

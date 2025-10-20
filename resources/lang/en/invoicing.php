@@ -23,6 +23,7 @@ return [
         'edit' => 'Edit',
         'pdf' => 'PDF',
         'send' => 'Send',
+        'send_to_dian' => 'Send to DIAN',
         'delete' => 'Delete',
     ],
 
@@ -58,4 +59,7 @@ return [
         'monthly_income_chart' => 'Monthly revenue chart',
         'chartjs_pending' => 'Chart.js integration pending',
     ],
+
+    'sent_to_dian_success' => 'Invoice sent/queued to DIAN.',
+    'sent_to_dian_error' => 'Failed to send invoice to DIAN.',
 ];

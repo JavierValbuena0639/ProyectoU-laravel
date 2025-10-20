@@ -7,6 +7,8 @@ use App\Http\Controllers\Admin\DatabaseController as AdminDatabaseController;
 use App\Http\Controllers\Admin\SystemController as AdminSystemController;
 use App\Http\Controllers\Admin\FeController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\PasswordResetController;
 
 // Ruta principal - muestra panel de bienvenida y redirige a /login en 30s
 Route::get('/', function () {
@@ -22,6 +24,24 @@ Route::get('/login', function () {
 })->name('login')->middleware('guest');
 
 Route::post('/login', [App\Http\Controllers\Auth\LoginController::class, 'login']);
+
+// Envío de enlace de recuperación para el administrador
+Route::post('/password/forgot-admin', [LoginController::class, 'sendAdminResetLink'])
+    ->name('password.forgot_admin')
+    ->middleware('guest');
+
+// Envío de enlace de recuperación para cualquier email (usuario/admin)
+Route::post('/password/email', [LoginController::class, 'sendResetLink'])
+    ->name('password.email')
+    ->middleware('guest');
+
+// Restablecimiento de contraseña (formulario y acción)
+Route::get('/password/reset/{token}', [PasswordResetController::class, 'showResetForm'])
+    ->name('password.reset')
+    ->middleware('guest');
+Route::post('/password/reset', [PasswordResetController::class, 'reset'])
+    ->name('password.update')
+    ->middleware('guest');
 
 // Registro de administradores (acceso invitado)
 Route::middleware('guest')->group(function () {
@@ -91,6 +111,8 @@ Route::post('/logout', function () {
         // Facturación Electrónica (DIAN) - Configuración (solo admin)
         Route::get('/fe/config', [FeController::class, 'index'])->name('fe.config');
         Route::post('/fe/config/save', [FeController::class, 'save'])->name('fe.config.save');
+        // Envío de facturas a DIAN (solo admin)
+        Route::post('/fe/send/{invoice}', [FeController::class, 'sendInvoice'])->name('fe.invoice.send');
         
         // Rutas para reportes
         Route::get('/reports', function () {

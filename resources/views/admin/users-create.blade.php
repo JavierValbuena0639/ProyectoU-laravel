@@ -105,6 +105,7 @@
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="usuario@ejemplo.com">
                             <p class="mt-2 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded p-2">Se enviará un código de verificación al correo ingresado si el dominio coincide.</p>
+                            @error('email')<p class="mt-2 text-xs text-red-600">{{ $message }}</p>@enderror
                         </div>
                     </div>
                 </div>

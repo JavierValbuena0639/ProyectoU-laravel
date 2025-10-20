@@ -153,6 +153,12 @@
                                 <button class="text-yellow-600 hover:text-yellow-900 mr-3" title="{{ __('invoicing.actions.send') }}">
                                     <i class="fas fa-paper-plane"></i>
                                 </button>
+                                <form action="{{ route('admin.fe.invoice.send', ['invoice' => $invoice->id]) }}" method="POST" class="inline">
+                                    @csrf
+                                    <button type="submit" class="text-blue-700 hover:text-blue-900 mr-3" title="{{ __('invoicing.actions.send_to_dian') }}">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                    </button>
+                                </form>
                                 <button class="text-red-600 hover:text-red-900" title="{{ __('invoicing.actions.delete') }}">
                                     <i class="fas fa-trash"></i>
                                 </button>

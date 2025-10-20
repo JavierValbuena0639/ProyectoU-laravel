@@ -12,6 +12,8 @@ return [
     'quick_actions_database_desc' => 'Backups and maintenance',
     'quick_actions_reports_title' => 'Reports',
     'quick_actions_reports_desc' => 'System analysis',
+    'quick_actions_fe_title' => 'FE (DIAN)',
+    'quick_actions_fe_desc' => 'Configure FE and resolution',
     'stats_total_users' => 'Total Users',
     'stats_invoices' => 'Invoices',
     'stats_accounts' => 'Accounts',
