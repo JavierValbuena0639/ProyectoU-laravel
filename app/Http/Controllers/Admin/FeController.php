@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 use App\Models\FeResolution;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Invoice;
+use App\Support\FeDianService;
 
 class FeController extends Controller
 {
@@ -70,5 +72,46 @@ class FeController extends Controller
         }
 
         return redirect()->route('admin.fe.config')->with('success', __('admin.fe_config_saved'));
+    }
+
+    /**
+     * Enviar una factura a DIAN (stub).
+     */
+    public function sendInvoice(Invoice $invoice, Request $request)
+    {
+        $service = new FeDianService([
+            'software_id' => config('fe.software_id'),
+            'software_pin' => config('fe.software_pin'),
+            'cert_path' => config('fe.cert_path'),
+            'cert_password' => config('fe.cert_password'),
+            'environment' => config('fe.environment'),
+        ]);
+
+        try {
+            $result = $service->send($invoice);
+
+            // Auditoría básica
+            try {
+                Log::channel('audit')->info('DIAN send success', [
+                    'user_id' => optional(Auth::user())->id,
+                    'invoice_id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'result' => $result,
+                ]);
+            } catch (\Throwable $e) {
+                // No interrumpir por errores de log
+            }
+
+            return redirect()->route('invoicing.invoices')->with('success', __('invoicing.sent_to_dian_success'));
+        } catch (\Throwable $e) {
+            try {
+                Log::error('DIAN send failed', [
+                    'error' => $e->getMessage(),
+                    'invoice_id' => $invoice->id ?? null,
+                ]);
+            } catch (\Throwable $logErr) {}
+
+            return redirect()->route('invoicing.invoices')->withErrors(['dian' => __('invoicing.sent_to_dian_error')]);
+        }
     }
 }

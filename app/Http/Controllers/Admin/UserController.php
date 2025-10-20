@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\VerificationCodeMail;
+use App\Rules\NotPublicEmailDomain;
 
 class UserController extends Controller
 {
@@ -54,7 +55,7 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email', new NotPublicEmailDomain()],
             'password' => ['required', 'string', Password::min(8)->letters()->mixedCase()->numbers()->symbols()->uncompromised(), 'confirmed'],
             'role_id' => ['required', 'integer', 'exists:roles,id'],
             'status' => ['nullable', 'in:active,inactive'],
@@ -119,7 +120,7 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id, new NotPublicEmailDomain()],
             'password' => ['nullable', 'string', Password::min(8)->letters()->mixedCase()->numbers()->symbols()->uncompromised(), 'confirmed'],
             'role_id' => ['required', 'integer', 'exists:roles,id'],
             'status' => ['nullable', 'in:active,inactive'],

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Auth\Notifications\ResetPassword;
 
 class User extends Authenticatable
 {
@@ -173,5 +174,13 @@ class User extends Authenticatable
         if (!$this->email) return '';
         $parts = explode('@', $this->email);
         return $parts[1] ?? '';
+    }
+
+    /**
+     * Notificación de restablecimiento de contraseña
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new ResetPassword($token));
     }
 }

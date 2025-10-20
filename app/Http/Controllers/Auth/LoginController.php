@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Password;
 
 class LoginController extends Controller
 {
@@ -78,5 +79,64 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
         
         return redirect('/login');
+    }
+
+    /**
+     * Enviar enlace de restablecimiento de contraseña al correo del administrador
+     */
+    public function sendAdminResetLink(Request $request)
+    {
+        // Buscar primer administrador activo
+        $admin = User::whereHas('role', function ($q) {
+                $q->where('name', 'admin');
+            })
+            ->where('active', true)
+            ->orderBy('id')
+            ->first();
+
+        if (!$admin) {
+            return back()->with('error', 'No existe un usuario administrador activo para recuperar la contraseña.');
+        }
+
+        $status = Password::sendResetLink(['email' => $admin->email]);
+
+        if ($status === Password::RESET_LINK_SENT) {
+            return back()->with('status', 'Hemos enviado el enlace de recuperación al correo del administrador: ' . $admin->email);
+        }
+
+        if ($status === Password::RESET_THROTTLED) {
+            return back()->withErrors(['email' => 'Debes esperar antes de solicitar otro enlace de recuperación.'])->withInput();
+        }
+
+        return back()->withErrors(['email' => __($status)])->withInput();
+    }
+
+    /**
+     * Enviar enlace de restablecimiento de contraseña al email ingresado
+     */
+    public function sendResetLink(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email'
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return back()->withErrors(['email' => 'Ese correo no existe o no está creado con nosotros.'])->withInput();
+        }
+        if (!$user->active) {
+            return back()->withErrors(['email' => 'La cuenta está desactivada; por favor contacte al administrador.'])->withInput();
+        }
+
+        $status = Password::sendResetLink($request->only('email'));
+
+        if ($status === Password::RESET_LINK_SENT) {
+            return back()->with('status', 'Hemos enviado el enlace de recuperación a: ' . $user->email);
+        }
+        if ($status === Password::RESET_THROTTLED) {
+            return back()->withErrors(['email' => 'Debes esperar antes de solicitar otro enlace de recuperación.'])->withInput();
+        }
+
+        return back()->withErrors(['email' => __($status)])->withInput();
     }
 }
