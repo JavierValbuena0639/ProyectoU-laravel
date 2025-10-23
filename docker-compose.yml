@@ -19,7 +19,7 @@ services:
       - APP_ENV=local
       - APP_DEBUG=true
       - APP_URL=http://sumaxia.local:8000
-      - APP_KEY=base64:Z3NzN2pKQm9md1NMR1dSY3pPZ0VZcDRqT0ZtVjR5MFV3UUFoQ2xIZ1Z5cFA=
+      - APP_KEY=base64:wtL4iv/TrjTMk8UL/iM2z/59Ytd7Op8I2zd90sy/m7g=
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
@@ -37,7 +37,7 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    command: ["/usr/local/bin/init-app.sh"]
+    command: ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
     networks:
       - sumaxia
 
