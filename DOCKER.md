@@ -1,20 +1,14 @@
 # Guía de Despliegue con Docker (Linux/Windows/macOS)
 
 Nota de actualización (2025):
-- La imagen oficial del proyecto usa PHP-FPM + Nginx gestionados por `supervisord` y un build multi-stage para compilar assets con Vite durante la construcción de la imagen. Ya no es necesario ejecutar Node en producción.
-- Para producción Linux se incluye `docker-compose.prod.yml` sin mapeo de código (usa la imagen construida con assets incluidos) y con `healthcheck` del servicio `app`.
+- Se unifica el uso de `docker-compose.yml` para desarrollo y pruebas locales. Ya no se usa `docker-compose.prod.yml`.
+- La imagen usa PHP-FPM + Nginx bajo `supervisord` y build multi‑stage para Vite.
 
-Resumen rápido (Desarrollo y Producción):
-- Desarrollo:
-  - Arranca: `docker compose -f docker-compose.yml --env-file .env.docker up -d`
-  - Construir: `docker compose -f docker-compose.yml build`
-  - Migraciones: `docker compose -f docker-compose.yml exec app php artisan migrate`
-  - Logs: `docker compose -f docker-compose.yml logs -f app`
-- Producción:
-  - Arranca: `docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker up -d`
-  - Construir: `docker compose -f docker-compose.yml -f docker-compose.prod.yml build`
-  - Migraciones: `docker compose -f docker-compose.yml -f docker-compose.prod.yml exec app php artisan migrate --force`
-  - Acceso: `http://localhost:8000/`. phpMyAdmin opcional en `http://localhost:8080/` si está definido.
+Resumen rápido (Entorno local):
+- Arrancar/actualizar: `docker compose --env-file .env.docker up -d --build`
+- Migraciones: `docker compose exec app php artisan migrate --force`
+- Logs: `docker compose logs -f app`
+- Apagar: `docker compose down`
 
 
 Esta guía te ayudará a desplegar el sistema Sumaxia utilizando Docker en un entorno Linux con MySQL como base de datos.
@@ -34,25 +28,15 @@ Esta guía te ayudará a desplegar el sistema Sumaxia utilizando Docker en un en
 - `docker-compose.prod.yml` elimina el mapeo de código para usar la imagen final y añade `healthcheck`.
 - `docker-compose.yml` mantiene un servicio `node` opcional para desarrollo con hot reload (Windows/macOS/Linux).
 
-## Diferencias entre docker-compose.yml y docker-compose.prod.yml
+## Compose unificado
 
-- Base vs override:
-  - `docker-compose.yml` es la definición base pensada para desarrollo.
-  - `docker-compose.prod.yml` es un override para producción con ajustes de seguridad y robustez.
-- Build vs Image:
-  - Desarrollo: `build: .` y bind mounts del código (`.:/var/www`).
-  - Producción: `image: <repo/app:tag>` sin bind mounts del código, assets ya compilados.
-- Variables y entorno:
-  - Desarrollo: puede usar `.env` y `APP_DEBUG=true`.
-  - Producción: usa `--env-file .env.docker`, `APP_ENV=production`, `APP_DEBUG=false`.
-- Puertos y redes:
-  - Desarrollo: puertos expuestos para probar localmente.
-  - Producción: detrás de proxy/reverse proxy, limitar puertos expuestos.
-- Resiliencia:
-  - Producción: `healthcheck`, `restart: always`, dependencias con condiciones.
-- Servicios auxiliares:
-  - Desarrollo: watchers/hot‑reload.
-  - Producción: mínimo necesario, logging y métricas adecuados.
+Desde 2025 se usa un único `docker-compose.yml` para desarrollo y entornos de prueba locales. No se requiere `docker-compose.prod.yml`. Las instrucciones se basan en `--env-file .env.docker` y el alias `sumaxia.local`.
+
+Comandos clave:
+- Arrancar/actualizar: `docker compose --env-file .env.docker up -d --build`
+- Apagar: `docker compose down`
+- Migraciones: `docker compose exec app php artisan migrate --force`
+- Logs: `docker compose logs -f app`
 
 ## Windows/macOS
 
@@ -158,16 +142,16 @@ GRANT ALL PRIVILEGES ON sumaxia.* TO 'sumaxia_user'@'%';
 FLUSH PRIVILEGES;
 ```
 
-### 5. Archivo de Entorno para Producción
+### 5. Archivo de Entorno para Docker
 
-Crea un archivo `.env.docker`:
+Crea o ajusta `.env.docker`:
 
 ```env
 APP_NAME=Sumaxia
-APP_ENV=production
+APP_ENV=local
 APP_KEY=base64:GENERAR_NUEVA_CLAVE_AQUI
-APP_DEBUG=false
-APP_URL=http://localhost:8000
+APP_DEBUG=true
+APP_URL=http://sumaxia.local:8000
 
 LOG_CHANNEL=stack
 LOG_DEPRECATIONS_CHANNEL=null
@@ -183,44 +167,161 @@ DB_PASSWORD=sumaxia_password
 BROADCAST_DRIVER=log
 CACHE_DRIVER=file
 FILESYSTEM_DISK=local
-QUEUE_CONNECTION=sync
+QUEUE_CONNECTION=database
 SESSION_DRIVER=database
 SESSION_LIFETIME=120
 
-MEMCACHED_HOST=127.0.0.1
+MAIL_MAILER=smtp
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=<tu_usuario_mailtrap>
+MAIL_PASSWORD=<tu_password_mailtrap>
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS="no-reply@sumaxia.com"
+MAIL_FROM_NAME="${APP_NAME}"
+```
 
-REDIS_HOST=127.0.0.1
-REDIS_PASSWORD=null
-REDIS_PORT=6379
+## Windows/macOS
+
+- Recomendado WSL2 en Windows para mejor rendimiento de bind mounts.
+- Usa siempre `docker compose` (plugin moderno), no `docker-compose` (legacy) cuando sea posible.
+- Ejemplos:
+  - Dev: `docker compose -f docker-compose.yml --env-file .env.docker up -d`
+  - Prod: `docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker up -d`
+
+## Estructura de Archivos Docker
+
+### 1. Dockerfile (multi-stage: Node + PHP-FPM)
+
+El `Dockerfile` ya incluido en el repositorio compila assets con Node y construye la imagen final con PHP-FPM + Nginx.
+
+```dockerfile
+FROM node:18 AS node_builder
+
+WORKDIR /app
+COPY package.json ./
+COPY . .
+RUN npm install && npm run build
+
+FROM php:8.2-fpm
+
+# Limpiar caché
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    unzip \
+    default-mysql-client \
+    nginx \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
+
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+COPY docker/php.ini /usr/local/etc/php/conf.d/local.ini
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Establecer directorio de trabajo
+WORKDIR /var/www
+
+# Copiar archivos del proyecto
+COPY . .
+
+# Instalar dependencias de PHP
+RUN composer install --no-dev --optimize-autoloader
+COPY --from=node_builder /app/public/build /var/www/public/build
+
+# Instalar dependencias de Node.js y compilar assets
+RUN npm install && npm run build
+
+# Configurar permisos
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 755 /var/www/storage \
+    && chmod -R 755 /var/www/bootstrap/cache
+
+# Exponer puerto
+EXPOSE 80
+
+# Comando de inicio
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+```
+
+### 2. Docker Compose (desarrollo vs producción)
+
+- Desarrollo: usa `docker-compose.yml` (mapea código y puede incluir servicio `node` para hot reload).
+- Producción Linux: usa `docker-compose.prod.yml` (sin mapeo de código, imagen con assets incluidos, healthcheck del `app`).
+
+Para producción, utiliza el nuevo `docker-compose.prod.yml` ya presente en el repositorio.
+
+### 3. Configuración de Nginx y PHP-FPM
+
+Los archivos de configuración están en `docker/nginx.conf`, `docker/php.ini` y `docker/supervisord.conf`.
+
+El `nginx.conf` del proyecto sirve `public/` y redirige a `index.php` cuando corresponde.
+
+### 4. Script de Inicialización MySQL
+
+Crea el directorio `docker/mysql/` y el archivo `init.sql`:
+
+```sql
+-- Crear base de datos si no existe
+CREATE DATABASE IF NOT EXISTS sumaxia CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Crear usuario si no existe
+CREATE USER IF NOT EXISTS 'sumaxia_user'@'%' IDENTIFIED BY 'sumaxia_password';
+
+-- Otorgar permisos
+GRANT ALL PRIVILEGES ON sumaxia.* TO 'sumaxia_user'@'%';
+
+-- Aplicar cambios
+FLUSH PRIVILEGES;
+```
+
+### 5. Archivo de Entorno para Docker
+
+Crea o ajusta `.env.docker`:
+
+```env
+APP_NAME=Sumaxia
+APP_ENV=local
+APP_KEY=base64:GENERAR_NUEVA_CLAVE_AQUI
+APP_DEBUG=true
+APP_URL=http://sumaxia.local:8000
+
+LOG_CHANNEL=stack
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=debug
+
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=sumaxia
+DB_USERNAME=sumaxia_user
+DB_PASSWORD=sumaxia_password
+
+BROADCAST_DRIVER=log
+CACHE_DRIVER=file
+FILESYSTEM_DISK=local
+QUEUE_CONNECTION=database
+SESSION_DRIVER=database
+SESSION_LIFETIME=120
 
 MAIL_MAILER=smtp
-MAIL_HOST=mailpit
-MAIL_PORT=1025
-MAIL_USERNAME=null
-MAIL_PASSWORD=null
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=<tu_usuario_mailtrap>
+MAIL_PASSWORD=<tu_password_mailtrap>
 MAIL_ENCRYPTION=null
-MAIL_FROM_ADDRESS="hello@example.com"
+MAIL_FROM_ADDRESS="no-reply@sumaxia.com"
 MAIL_FROM_NAME="${APP_NAME}"
-
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-AWS_DEFAULT_REGION=us-east-1
-AWS_BUCKET=
-AWS_USE_PATH_STYLE_ENDPOINT=false
-
-PUSHER_APP_ID=
-PUSHER_APP_KEY=
-PUSHER_APP_SECRET=
-PUSHER_HOST=
-PUSHER_PORT=443
-PUSHER_SCHEME=https
-PUSHER_APP_CLUSTER=mt1
-
-VITE_PUSHER_APP_KEY="${PUSHER_APP_KEY}"
-VITE_PUSHER_HOST="${PUSHER_HOST}"
-VITE_PUSHER_PORT="${PUSHER_PORT}"
-VITE_PUSHER_SCHEME="${PUSHER_SCHEME}"
-VITE_PUSHER_APP_CLUSTER="${PUSHER_APP_CLUSTER}"
 ```
 
 ## Flujo de despliegue y pruebas en Linux
