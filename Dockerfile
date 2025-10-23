@@ -29,8 +29,12 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 # Instalar extensiones PHP
 RUN docker-php-ext-install pdo_mysql pdo_sqlite mbstring exif pcntl bcmath gd
 
-# Obtener Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Instalar Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+RUN chmod +x /usr/local/bin/composer
+
+# Verificar instalación de Composer
+RUN composer --version
 
 # Crear usuario para la aplicación Laravel
 RUN groupadd -g 1000 www
@@ -44,26 +48,33 @@ COPY docker/php.ini /usr/local/etc/php/conf.d/local.ini
 # Establecer directorio de trabajo
 WORKDIR /var/www
 
-# Copiar archivos de la aplicación
-COPY . /var/www
-
-# Copiar archivos de composer
+# Copiar archivos de composer primero para aprovechar cache de Docker
 COPY composer.json composer.lock ./
 
 # Instalar dependencias de Composer
-RUN composer install --no-dev --optimize-autoloader
+# Para desarrollo incluye dependencias de dev, para producción usa --no-dev
+ARG INSTALL_DEV=true
+RUN if [ "$INSTALL_DEV" = "true" ] ; then \
+        composer install --optimize-autoloader --no-interaction --prefer-dist ; \
+    else \
+        composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist ; \
+    fi
+
+# Copiar el resto de archivos de la aplicación
+COPY . /var/www
 
 # Copiar assets compilados desde el stage de Node
 COPY --from=node_builder /app/public/build /var/www/public/build
+
+# Asegurar que vendor existe y tiene los permisos correctos
+RUN composer dump-autoload --optimize
 
 # Cambiar propietario de los archivos
 RUN chown -R www:www /var/www
 RUN chmod -R 755 /var/www/storage
 RUN chmod -R 755 /var/www/bootstrap/cache
 
-# Crear base de datos SQLite
-RUN touch /var/www/database/database.sqlite
-RUN chown www:www /var/www/database/database.sqlite
+# Base de datos configurada para MySQL (no SQLite)
 
 # Exponer puerto
 EXPOSE 80

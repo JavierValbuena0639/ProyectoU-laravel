@@ -11,18 +11,31 @@ services:
     working_dir: /var/www
     volumes:
       - ./:/var/www
-      - ./docker/php.ini:/usr/local/etc/php/conf.d/local.ini
+      #- ./docker/php.ini:/usr/local/etc/php/conf.d/local.ini
     ports:
       - "8000:80"
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
+      - APP_URL=http://sumaxia.local:8000
+      - APP_KEY=base64:Z3NzN2pKQm9md1NMR1dSY3pPZ0VZcDRqT0ZtVjR5MFV3UUFoQ2xIZ1Z5cFA=
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_DATABASE=sumaxia
       - DB_USERNAME=sumaxia_user
       - DB_PASSWORD=sumaxia_password
+      - MAIL_MAILER=smtp
+      - MAIL_HOST=sandbox.smtp.mailtrap.io
+      - MAIL_PORT=2525
+      - MAIL_ENCRYPTION=null
+      - MAIL_USERNAME=7d75cb70a4ecb5
+      - MAIL_PASSWORD=7d55bae9b3ba27
+      - MAIL_FROM_ADDRESS=no-reply@sumaxia.com
+      - MAIL_FROM_NAME=SumAxia
+    depends_on:
+      - mysql
+    command: sh -c "composer install && php artisan migrate --force && php artisan storage:link || true && /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf"
     networks:
       - sumaxia
 
@@ -74,6 +87,17 @@ services:
       PMA_PASSWORD: root_password
     depends_on:
       - mysql
+    networks:
+      - sumaxia
+
+  # Mailpit se mantiene opcional, pero no es necesario con Mailtrap
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: sumaxia_mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025" # UI
+      - "1025:1025" # SMTP
     networks:
       - sumaxia
 
