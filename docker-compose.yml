@@ -35,7 +35,8 @@ services:
       - MAIL_FROM_ADDRESS=no-reply@sumaxia.com
       - MAIL_FROM_NAME=SumAxia
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     command: ["/usr/local/bin/init-app.sh"]
     networks:
       - sumaxia

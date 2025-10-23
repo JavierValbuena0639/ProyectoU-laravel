@@ -21,7 +21,9 @@ RUN apt-get update && apt-get install -y \
     sqlite3 \
     libsqlite3-dev \
     nginx \
-    supervisor
+    supervisor \
+    default-mysql-client \
+    netcat-openbsd
 
 # Limpiar cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
