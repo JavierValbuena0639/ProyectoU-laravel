@@ -20,7 +20,7 @@ DB_PORT=${DB_PORT:-3306}
 DB_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root_password}
 
 echo "🗄️ Esperando a MySQL (${DB_HOST}:${DB_PORT})..."
-until mysqladmin ping -h"${DB_HOST}" -P"${DB_PORT}" -uroot -p"${DB_ROOT_PASSWORD}" --silent; do
+until mysqladmin ping -h"${DB_HOST}" -P"${DB_PORT}" -uroot -p"${DB_ROOT_PASSWORD}" --silent --skip-ssl; do
   echo "Esperando a MySQL..."
   sleep 2
 done
@@ -30,9 +30,9 @@ APP_DB_USER=${DB_USERNAME:-sumaxia_user}
 APP_DB_PASS=${DB_PASSWORD:-sumaxia_password}
 APP_DB_NAME=${DB_DATABASE:-sumaxia}
 
-if ! mysql -h"${DB_HOST}" -P"${DB_PORT}" -u"${APP_DB_USER}" -p"${APP_DB_PASS}" -e "SELECT 1" >/dev/null 2>&1; then
+if ! mysql -h"${DB_HOST}" -P"${DB_PORT}" -u"${APP_DB_USER}" -p"${APP_DB_PASS}" --skip-ssl -e "SELECT 1" >/dev/null 2>&1; then
   echo "⚙️ Creando usuario/BD para la app si no existen..."
-  mysql -h"${DB_HOST}" -P"${DB_PORT}" -uroot -p"${DB_ROOT_PASSWORD}" <<SQL
+  mysql -h"${DB_HOST}" -P"${DB_PORT}" -uroot -p"${DB_ROOT_PASSWORD}" --skip-ssl <<SQL
 CREATE DATABASE IF NOT EXISTS \`${APP_DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS '${APP_DB_USER}'@'%' IDENTIFIED BY '${APP_DB_PASS}';
 GRANT ALL PRIVILEGES ON \`${APP_DB_NAME}\`.* TO '${APP_DB_USER}'@'%';

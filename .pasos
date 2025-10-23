@@ -1,0 +1,88 @@
+Pasos para ejecutar SumAxia en Linux Mint
+
+1) Prerrequisitos
+- Docker (Engine 24+), Docker Compose plugin (v2+)
+- Git
+- Opcional: Node.js 18+ si usarás el servicio de frontend con Vite
+
+2) Obtener el proyecto
+- Clona o copia el repositorio en tu máquina Linux Mint
+- Entra al directorio del proyecto: cd /ruta/al/proyecto
+
+3) Configurar el alias del host (opción A) o usar localhost (opción B)
+- Opción A (alias sumaxia.local):
+  echo "127.0.0.1 sumaxia.local" | sudo tee -a /etc/hosts
+  Deja APP_URL en .env.docker como: http://sumaxia.local:8000
+- Opción B (localhost):
+  Cambia APP_URL en .env.docker a: http://localhost:8000
+
+4) Revisar .env.docker
+- Se usa dentro del contenedor (está mapeado como /var/www/.env)
+- APP_KEY válido ya establecido: base64:wtL4iv/TrjTMk8UL/iM2z/59Ytd7Op8I2zd90sy/m7g=
+- DB: host mysql, puerto 3306, credenciales definidas por docker-compose.yml
+- MAIL: por defecto Mailtrap; opcionalmente puedes usar Mailpit (servicio incluido)
+
+5) Permisos de carpetas (en el host Linux)
+- Asegura permisos para que el contenedor escriba:
+  sudo chown -R $USER:$USER storage bootstrap/cache
+  chmod -R 775 storage bootstrap/cache
+
+6) Levantar servicios
+- docker compose up -d
+- Verificar estado:
+  docker compose ps
+
+7) Migraciones y datos de ejemplo
+- Ejecuta migraciones y seeders:
+  docker compose exec app php artisan migrate --seed
+- Esto creará roles y usuarios demo.
+
+8) Limpiar/cargar cachés (tras confirmar APP_KEY)
+- docker compose exec app php artisan config:clear
+- docker compose exec app php artisan cache:clear
+- docker compose exec app php artisan route:clear
+- docker compose exec app php artisan view:clear
+- Opcional (solo si APP_KEY es válido):
+  docker compose exec app php artisan config:cache
+
+9) Acceder a la aplicación
+- Si usas alias: http://sumaxia.local:8000
+- Si usas localhost: http://localhost:8000
+
+10) Credenciales de prueba
+- Admin: admin@sumaxia.com / admin123
+- Usuario: user@sumaxia.com / user123
+- Soporte interno: javi.valbuena0997@gmail.com / Aaa.12715!
+
+11) phpMyAdmin (opcional)
+- URL: http://localhost:8080
+- Servidor: mysql, Usuario: root, Password: root_password
+- Base de datos: sumaxia
+
+12) Logs y diagnóstico
+- Logs del contenedor app: docker compose logs -f app
+- Log de Laravel: docker compose exec app tail -n 200 storage/logs/laravel.log
+- Comprobar respuesta HTTP desde host: curl -I http://localhost:8000/
+- Comprobar puertos en Linux: sudo ss -tulpn | grep :8000
+
+13) Servicio de frontend (opcional)
+- docker compose up -d node
+- Accede a Vite en http://localhost:5173 si lo necesitas
+
+14) Resetear el entorno por completo (si algo quedó inconsistente)
+- docker compose down -v
+- docker compose up -d
+- docker compose exec app php artisan migrate --seed
+
+15) Observaciones de Compose
+- La clave 'version' en docker-compose.yml es obsoleta; puedes eliminarla.
+- Verifica que no haya otro servicio usando el puerto 8000.
+
+16) Consejos ante problemas de sesión/login
+- Usa ventana privada o limpia cookies de localhost/sumaxia.local
+- Evita proxies/VPN mientras pruebas
+- Si tras login te devuelve al login, revisa APP_URL (alias/hosts) y cookies
+
+17) Correo de verificación
+- Si el envío falla, no bloquea el registro; se mostrará un aviso.
+- Puedes cambiar MAIL_* en .env.docker para tu proveedor.

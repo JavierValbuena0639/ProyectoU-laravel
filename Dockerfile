@@ -93,9 +93,6 @@ COPY . /var/www
 # Copiar assets compilados desde el stage de Node
 COPY --from=node_builder /app/public/build /var/www/public/build
 
-# Asegurar que vendor existe y tiene los permisos correctos
-RUN composer dump-autoload --optimize
-
 # Crear directorios necesarios y configurar permisos
 RUN mkdir -p /var/www/storage/framework/cache/data \
     && mkdir -p /var/www/storage/framework/sessions \
@@ -105,6 +102,9 @@ RUN mkdir -p /var/www/storage/framework/cache/data \
     && chown -R www-data:www-data /var/www \
     && chmod -R 775 /var/www/storage \
     && chmod -R 775 /var/www/bootstrap/cache
+
+# Asegurar que vendor existe y tiene los permisos correctos
+RUN composer dump-autoload --optimize
 
 # Base de datos configurada para MySQL (no SQLite)
 
