@@ -35,6 +35,7 @@ Después de configurar el archivo hosts:
 - **Aplicación principal**: `http://sumaxia.local:8000`
 - **phpMyAdmin**: `http://localhost:8080`
 - **Mailpit** (opcional): `http://localhost:8025`
+- **Correo por defecto (SMTP)**: Mailtrap (`sandbox.smtp.mailtrap.io`)
 - **Vite Dev Server**: `http://localhost:5173`
 
 ## Notas

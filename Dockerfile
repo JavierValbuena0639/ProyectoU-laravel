@@ -53,11 +53,13 @@ COPY composer.json composer.lock ./
 
 # Instalar dependencias de Composer
 # Para desarrollo incluye dependencias de dev, para producción usa --no-dev
+ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV COMPOSER_MEMORY_LIMIT=-1
 ARG INSTALL_DEV=true
 RUN if [ "$INSTALL_DEV" = "true" ] ; then \
-        composer install --optimize-autoloader --no-interaction --prefer-dist ; \
+        composer install --optimize-autoloader --no-interaction --prefer-dist --no-scripts ; \
     else \
-        composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist ; \
+        composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts ; \
     fi
 
 # Copiar el resto de archivos de la aplicación
