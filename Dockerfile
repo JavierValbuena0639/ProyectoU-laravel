@@ -61,8 +61,9 @@ COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/php.ini /usr/local/etc/php/conf.d/local.ini
 COPY docker/init-app.sh /usr/local/bin/init-app.sh
 
-# Hacer ejecutable el script de inicialización
-RUN chmod +x /usr/local/bin/init-app.sh
+# Habilitar sitio de Nginx y permisos de script
+RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default \
+    && chmod +x /usr/local/bin/init-app.sh
 
 # Establecer directorio de trabajo
 WORKDIR /var/www
@@ -99,7 +100,7 @@ RUN mkdir -p /var/www/storage/framework/cache/data \
     && mkdir -p /var/www/storage/framework/views \
     && mkdir -p /var/www/storage/logs \
     && mkdir -p /var/www/bootstrap/cache \
-    && chown -R www:www /var/www \
+    && chown -R www-data:www-data /var/www \
     && chmod -R 775 /var/www/storage \
     && chmod -R 775 /var/www/bootstrap/cache
 
