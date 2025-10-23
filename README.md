@@ -99,7 +99,7 @@ Sumaxia es un sistema integral de gestión empresarial desarrollado en Laravel q
 - Composer
 - Node.js >= 16.x
 - NPM o Yarn
-- SQLite (por defecto) o MySQL
+- MySQL (recomendado) o SQLite (opcional)
 - Servidor web (Apache/Nginx) o PHP built-in server
 
 ### Extensiones PHP Requeridas
@@ -145,26 +145,19 @@ php artisan key:generate
 
 ### 4. Configurar la Base de Datos
 
-#### Opción A: SQLite (Recomendado para desarrollo)
-```bash
-# Crear el archivo de base de datos
-touch database/database.sqlite
-
-# Configurar en .env
-DB_CONNECTION=sqlite
-DB_DATABASE=/ruta/absoluta/al/proyecto/database/database.sqlite
-```
-
-#### Opción B: MySQL
-```bash
-# Configurar en .env
+#### MySQL (recomendado)
+```env
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=sumaxia
-DB_USERNAME=tu_usuario
-DB_PASSWORD=tu_contraseña
+DB_USERNAME=root
+DB_PASSWORD=
 ```
+- Crea la base de datos `sumaxia` en tu servidor MySQL y asegúrate de que el usuario tenga permisos.
+- Si usas Docker, `DB_HOST` debe ser `mysql` y las credenciales están en `.env.docker`.
+
+Nota: El proyecto ya no utiliza SQLite por defecto para evitar confusiones.
 
 ### 5. Ejecutar Migraciones
 ```bash
@@ -230,32 +223,23 @@ El sistema estará disponible en `http://127.0.0.1:8000`
 - El respaldo utiliza `ZipArchive` para empaquetar datos de tablas en formato `.json`. Si prefieres `.sql` (mysqldump/pg_dump), se puede integrar según el motor.
 - Asegúrate de que el proceso de PHP tiene permisos de escritura para `.env` (al guardar conexión) y `storage/app/backups/`.
 
-## Docker (Desarrollo y Producción)
+## Docker
 
-Resumen rápido de uso con Docker Compose:
+Resumen rápido con un único `docker-compose.yml`:
 
-- Desarrollo (`docker-compose.yml`):
-  - Usa mapeo de código y está pensado para iterar con rapidez.
-  - Arranca: `docker compose -f docker-compose.yml --env-file .env.docker up -d`
-  - Construir si cambias Dockerfile: `docker compose -f docker-compose.yml build`
-  - Migraciones: `docker compose -f docker-compose.yml exec app php artisan migrate`
-  - Logs: `docker compose -f docker-compose.yml logs -f app`
+- Arranca: `docker compose --env-file .env.docker up -d --build`
+- Logs: `docker compose logs -f app`
+- Migraciones: `docker compose exec app php artisan migrate --force`
 
-- Producción (`docker-compose.yml` + `docker-compose.prod.yml`):
-  - Usa imagen preconstruida, sin mapeo de código, con healthcheck y ajustes seguros.
-  - Arranca: `docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.docker up -d`
-  - Construir: `docker compose -f docker-compose.yml -f docker-compose.prod.yml build`
-  - Migraciones: `docker compose -f docker-compose.yml -f docker-compose.prod.yml exec app php artisan migrate --force`
-  - Ver estado: `docker compose -f docker-compose.yml -f docker-compose.prod.yml ps`
-
-Diferencias clave entre `docker-compose.yml` y `docker-compose.prod.yml`:
-- Desarrollo: `build`, bind mounts del código, puertos expuestos y herramientas de hot‑reload.
-- Producción: `image` estable, sin bind mounts del código, variables seguras, healthcheck y `restart: always`.
+Acceso a la aplicación:
+- `http://sumaxia.local:8000` (recomendado). Sigue `SETUP-HOSTS.md` para configurar el alias.
+- `http://localhost:8000` (respaldo).
 
 Notas:
-- Usa `.env.docker` como archivo de entorno base para Docker y ajústalo según tus credenciales.
-- En Windows, es recomendable WSL2 para mejor compatibilidad de bind mounts.
-- Consulta la guía detallada en `DOCKER.md` para arquitectura, configuración y despliegue.
+- `.env.docker` ya está alineado con MySQL y Mailtrap.
+- En el arranque del contenedor `app` se ejecuta `composer install`, `php artisan migrate --force` y `php artisan storage:link`.
+- Se ha eliminado `docker-compose.prod.yml` para evitar duplicidad y confusión.
+- En Windows, WSL2 mejora compatibilidad con bind mounts.
 
 ## Estructura del Proyecto
 
@@ -326,31 +310,39 @@ sumaxia/
 ```env
 APP_NAME=Sumaxia
 APP_ENV=local
-APP_KEY=base64:...
 APP_DEBUG=true
-APP_URL=http://localhost
+APP_URL=http://sumaxia.local:8000
 
-DB_CONNECTION=sqlite
-DB_DATABASE=/ruta/absoluta/database/database.sqlite
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=sumaxia
+DB_USERNAME=root
+DB_PASSWORD=
 
 MAIL_MAILER=smtp
-MAIL_HOST=mailpit
-MAIL_PORT=1025
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=<tu_user_mailtrap>
+MAIL_PASSWORD=<tu_pass_mailtrap>
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS=no-reply@sumaxia.com
+MAIL_FROM_NAME=SumAxia
 ```
 
 ### Configuración de Correo
 Para configurar el envío de correos, actualiza las variables MAIL_* en el archivo .env según tu proveedor de correo.
 
-Ejemplo para desarrollo con Mailhog/Mailpit:
+Ejemplo para desarrollo con Mailtrap:
 ```env
 MAIL_MAILER=smtp
-MAIL_HOST=mailhog
-MAIL_PORT=1025
-MAIL_USERNAME=null
-MAIL_PASSWORD=null
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=<tu_user_mailtrap>
+MAIL_PASSWORD=<tu_pass_mailtrap>
 MAIL_ENCRYPTION=null
 MAIL_FROM_ADDRESS="no-reply@sumaxia.com"
-MAIL_FROM_NAME="SumAxia Contabilidad"
+MAIL_FROM_NAME="SumAxia"
 ```
 
 ### Variables de Entorno FE (DIAN)
@@ -437,7 +429,7 @@ Crear carpeta `bk` y copiar contenido del proyecto (excluyendo directorios pesad
 ```powershell
 New-Item -ItemType Directory -Path bk -Force
 robocopy . bk /MIR \ \
-  /XF database\database.sqlite storage\logs\laravel.log \
+  /XF storage\logs\laravel.log \
   /XD bk vendor storage\framework\cache storage\framework\views .git .github node_modules \
   /NFL /NDL /NP /R:1 /W:1
 ```
@@ -521,7 +513,7 @@ Para soporte técnico o consultas sobre el sistema, contactar al equipo de desar
 ---
 
 **Versión:** 1.0.0  
-**Última actualización:** Octuubre 2025
+**Última actualización:** Octubre 2025
 ### Comportamiento de Dashboard por Roles
 
 - Ruta `GET /dashboard`:
