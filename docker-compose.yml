@@ -35,7 +35,7 @@ services:
       - MAIL_FROM_NAME=SumAxia
     depends_on:
       - mysql
-    command: sh -c "composer install && php artisan migrate --force && php artisan storage:link || true && /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf"
+    command: ["/usr/local/bin/init-app.sh"]
     networks:
       - sumaxia
 
