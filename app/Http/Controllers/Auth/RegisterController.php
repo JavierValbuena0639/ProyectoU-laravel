@@ -53,6 +53,11 @@ class RegisterController extends Controller
         try {
             $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             Mail::to($user->email)->send(new VerificationCodeMail($user, $code));
+            // Guardar código en la cuenta para verificación posterior
+            $user->forceFill([
+                'verification_code' => $code,
+                'verification_code_sent_at' => now(),
+            ])->save();
             // Mensaje informativo para el administrador recién registrado
             session()->flash('status', 'Hemos enviado un código de verificación al correo ' . $user->email . '.');
         } catch (\Throwable $e) {

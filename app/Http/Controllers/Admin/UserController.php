@@ -89,6 +89,12 @@ class UserController extends Controller
         try {
             $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             Mail::to($user->email)->send(new VerificationCodeMail($user, $code));
+            // Guardar código y marca de envío
+            $user->forceFill([
+                'verification_code' => $code,
+                'verification_code_sent_at' => now(),
+                'email_verified_at' => null,
+            ])->save();
         } catch (\Throwable $e) {
             // Registrar aviso en sesión
             session()->flash('error', 'No fue posible enviar el correo de verificación: ' . $e->getMessage());

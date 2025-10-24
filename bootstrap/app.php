@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'locale' => \App\Http\Middleware\LocaleMiddleware::class,
             'inactive' => \App\Http\Middleware\InactivityMiddleware::class,
             'lowercase' => \App\Http\Middleware\LowercaseInputMiddleware::class,
+            'verified_code' => \App\Http\Middleware\EnsureEmailCodeVerified::class,
         ]);
         // Añadir middlewares al grupo 'web'
         $middleware->appendToGroup('web', [
