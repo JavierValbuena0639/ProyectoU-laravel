@@ -65,6 +65,7 @@ COPY docker/init-app.sh /usr/local/bin/init-app.sh
 
 # Habilitar sitio de Nginx y permisos de script
 RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default \
+    && sed -i 's/\r$//' /usr/local/bin/init-app.sh \
     && chmod +x /usr/local/bin/init-app.sh
 
 # Establecer directorio de trabajo

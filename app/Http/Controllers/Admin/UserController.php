@@ -132,6 +132,17 @@ class UserController extends Controller
             return back()->withErrors(['role_id' => 'No está permitido asignar el rol de Soporte Interno.'])->withInput();
         }
 
+        // No permitir cambiar rol ni desactivar al Administrador
+        if ($user->isAdmin()) {
+            if ((int)$validated['role_id'] !== (int)$user->role_id) {
+                return back()->withErrors(['role_id' => 'No puedes cambiar el rol del usuario Administrador.'])->withInput();
+            }
+            $newStatus = ($validated['status'] ?? ($user->active ? 'active' : 'inactive'));
+            if ($newStatus !== 'active') {
+                return back()->withErrors(['status' => 'No puedes desactivar la cuenta del usuario Administrador.'])->withInput();
+            }
+        }
+
         $user->name = $validated['name'];
         $user->email = $validated['email'];
         $user->role_id = $validated['role_id'];
@@ -151,6 +162,9 @@ class UserController extends Controller
      */
     public function deactivate(User $user)
     {
+        if ($user->isAdmin()) {
+            return redirect()->route('admin.users')->withErrors(['user' => 'No puedes desactivar la cuenta del usuario Administrador.']);
+        }
         $user->active = false;
         $user->save();
 
