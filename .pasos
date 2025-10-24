@@ -22,13 +22,24 @@ Pasos para ejecutar SumAxia en Linux Mint
 - DB: host mysql, puerto 3306, credenciales definidas por docker-compose.yml
 - MAIL: por defecto Mailtrap; opcionalmente puedes usar Mailpit (servicio incluido)
 
-5) Permisos de carpetas (en el host Linux)
-- Asegura permisos para que el contenedor escriba:
+5) Permisos de carpetas en Linux (importante)
+- Son DOS rutas separadas (no existe "storage/bootstrap/cache"):
+  - storage
+  - bootstrap/cache
+- En el host Linux:
   sudo chown -R $USER:$USER storage bootstrap/cache
   chmod -R 775 storage bootstrap/cache
+  mkdir -p storage/framework/{cache,sessions,testing,views}
+  # Ajuste fino (opcional)
+  find storage -type d -exec chmod 775 {} \;
+  find storage -type f -exec chmod 664 {} \;
+- Si prefieres hacerlo dentro del contenedor:
+  docker compose exec app bash -lc "mkdir -p storage/framework/{cache,sessions,testing,views} && chown -R www-data:www-data storage bootstrap/cache && chmod -R 775 storage bootstrap/cache"
+- Si ves ErrorException "Permission denied" en storage/framework/views, repite este paso.
 
 6) Levantar servicios
 - docker compose up -d
+- Al iniciar, el contenedor ejecuta `/usr/local/bin/init-app.sh` que crea `storage` y `bootstrap/cache`, ajusta permisos y luego lanza supervisord automáticamente.
 - Verificar estado:
   docker compose ps
 

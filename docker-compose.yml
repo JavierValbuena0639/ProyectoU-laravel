@@ -37,7 +37,7 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
-    command: ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+    command: ["/usr/local/bin/init-app.sh"]
     networks:
       - sumaxia
 
