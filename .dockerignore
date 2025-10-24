@@ -10,3 +10,4 @@ storage/logs/
 .env.docker
 .DS_Store
 Thumbs.db
+public/storage/

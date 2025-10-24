@@ -79,11 +79,18 @@
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
-                                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-user text-blue-600"></i>
+                                    <div class="w-10 h-10 {{ $user->isServiceFounder() ? 'bg-yellow-100' : 'bg-blue-100' }} rounded-full flex items-center justify-center">
+                                        <i class="fas {{ $user->isServiceFounder() ? 'fa-crown text-yellow-600' : 'fa-user text-blue-600' }}"></i>
                                     </div>
                                     <div class="ml-4">
-                                        <div class="text-sm font-medium text-gray-900">{{ $user->name }}</div>
+                                        <div class="text-sm font-medium text-gray-900">
+                                            {{ $user->name }}
+                                            @if($user->isServiceFounder())
+                                                <span class="ml-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                                                    <i class="fas fa-star mr-1"></i>Fundador
+                                                </span>
+                                            @endif
+                                        </div>
                                     </div>
                                 </div>
                             </td>
@@ -106,12 +113,18 @@
                                 <a href="{{ route('admin.users.edit', $user) }}" class="text-blue-600 hover:text-blue-900 mr-3" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <form method="POST" action="{{ route('admin.users.deactivate', $user) }}" class="inline">
-                                    @csrf
-                                    <button type="submit" class="text-red-600 hover:text-red-900" title="Desactivar">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
+                                @if($user->isServiceFounder())
+                                    <span class="text-gray-400 cursor-not-allowed" title="El fundador del servicio no puede ser desactivado">
+                                        <i class="fas fa-lock"></i>
+                                    </span>
+                                @else
+                                    <form method="POST" action="{{ route('admin.users.deactivate', $user) }}" class="inline">
+                                        @csrf
+                                        <button type="submit" class="text-red-600 hover:text-red-900" title="Desactivar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                @endif
                             </td>
                         </tr>
                         @endforeach

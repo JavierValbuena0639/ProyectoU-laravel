@@ -11,6 +11,10 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use App\Models\User;
+use App\Models\Account;
+use App\Models\Invoice;
+use App\Models\Transaction;
+use App\Models\AdminUserAccount;
 
 class DatabaseController extends Controller
 {
@@ -45,9 +49,13 @@ class DatabaseController extends Controller
         usort($backups, function ($a, $b) { return $b['mtime'] <=> $a['mtime']; });
 
         // Métricas solicitadas
-        $domain = optional(Auth::user())->emailDomain();
+        $user = Auth::user();
+        $isSupport = $user ? $user->isSupport() : false;
+        $domain = optional($user)->emailDomain();
+
+        // Conteos de usuarios (global si soporte, por dominio si no)
         $usersQuery = User::query();
-        if ($domain) {
+        if (!$isSupport && $domain) {
             $usersQuery->where('email', 'like', '%@' . $domain);
         }
         $adminsCount = (clone $usersQuery)
@@ -55,12 +63,15 @@ class DatabaseController extends Controller
             ->count();
         $totalUsers = (clone $usersQuery)->count();
 
+        // Tamaño total de la base de datos (siempre global)
         $dbSizeBytes = $this->getDatabaseSizeBytes();
         $dbSizeHuman = $this->formatBytes($dbSizeBytes);
 
-        $tableStats = $this->getTableStats();
+        // Stats de tablas: global si soporte, por dominio si no
+        $domainForStats = $isSupport ? null : $domain;
+        $tableStats = $this->getTableStats($domainForStats);
         $fileUsage = $this->computeFileUsage();
-        $fileUsageDomain = $this->computeFileUsageByDomain($domain);
+        $fileUsageDomain = $this->computeFileUsageByDomain($domainForStats);
 
         return view('admin.database', compact(
             'config',
@@ -73,7 +84,8 @@ class DatabaseController extends Controller
             'tableStats',
             'fileUsage',
             'fileUsageDomain',
-            'domain'
+            'domain',
+            'isSupport'
         ));
     }
 
@@ -344,17 +356,19 @@ class DatabaseController extends Controller
         return $tables;
     }
 
-    private function getTableStats(): array
+    private function getTableStats(?string $domain = null): array
     {
         $driver = config('database.default');
         $tables = $this->getTableNames();
         $stats = [];
         $sizeMap = [];
+        $rowsMap = [];
         try {
             if ($driver === 'mysql') {
-                $rows = DB::select("SELECT TABLE_NAME as table_name, (DATA_LENGTH + INDEX_LENGTH) as size_bytes FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()");
+                $rows = DB::select("SELECT TABLE_NAME as table_name, (DATA_LENGTH + INDEX_LENGTH) as size_bytes, TABLE_ROWS as rows_count FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()");
                 foreach ($rows as $row) {
                     $sizeMap[$row->table_name] = (int) ($row->size_bytes ?? 0);
+                    $rowsMap[$row->table_name] = (int) ($row->rows_count ?? 0);
                 }
             } elseif ($driver === 'pgsql') {
                 $rows = DB::select("SELECT relname as table_name, pg_total_relation_size(relid) as size_bytes FROM pg_catalog.pg_statio_user_tables");
@@ -370,13 +384,63 @@ class DatabaseController extends Controller
 
         foreach ($tables as $t) {
             $count = 0;
-            try { $count = DB::table($t)->count(); } catch (\Throwable $e) {}
             $size = $sizeMap[$t] ?? null;
+            $totalRows = $rowsMap[$t] ?? null;
+            try {
+                if ($domain) {
+                    // Conteos por dominio para tablas clave
+                    switch ($t) {
+                        case 'accounts':
+                            $count = Account::where('service_domain', $domain)->count();
+                            break;
+                        case 'admin_user_accounts':
+                            // Contar relaciones donde el usuario pertenece al dominio
+                            $count = AdminUserAccount::whereHas('user', function($q) use ($domain){
+                                $q->where('email', 'like', '%@' . $domain);
+                            })->count();
+                            break;
+                        case 'users':
+                            $count = User::where('email', 'like', '%@' . $domain)->count();
+                            break;
+                        case 'invoices':
+                            $count = Invoice::whereHas('user', function($q) use ($domain){
+                                $q->where('email', 'like', '%@' . $domain);
+                            })->count();
+                            break;
+                        case 'transactions':
+                            $count = Transaction::whereHas('account', function($q) use ($domain){
+                                $q->where('service_domain', $domain);
+                            })->count();
+                            break;
+                        default:
+                            // Por defecto, contar global
+                            $count = DB::table($t)->count();
+                            break;
+                    }
+                } else {
+                    // Global
+                    $count = DB::table($t)->count();
+                }
+            } catch (\Throwable $e) {
+                // ignorar errores puntuales
+            }
+
+            // Estimar tamaño por dominio para tablas clave si tenemos totalRows y size
+            $sizeHuman = null;
+            if (!is_null($size)) {
+                if ($domain && in_array($t, ['accounts','admin_user_accounts','users','invoices','transactions'], true) && $totalRows && $totalRows > 0) {
+                    $estimated = (int) round($size * ($count / $totalRows));
+                    $sizeHuman = $this->formatBytes($estimated);
+                } else {
+                    $sizeHuman = $this->formatBytes($size);
+                }
+            }
+
             $stats[] = [
                 'name' => $t,
                 'rows' => $count,
                 'size' => $size,
-                'size_human' => is_null($size) ? null : $this->formatBytes($size),
+                'size_human' => $sizeHuman,
             ];
         }
         return $stats;
