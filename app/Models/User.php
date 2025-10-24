@@ -159,6 +159,35 @@ class User extends Authenticatable
     }
 
     /**
+     * Verificar si es el fundador del servicio (primer usuario del dominio)
+     */
+    public function isServiceFounder(): bool
+    {
+        $domain = $this->emailDomain();
+        if (!$domain) return false;
+
+        $firstUserId = static::where('email', 'like', '%@' . $domain)
+            ->orderBy('id', 'asc')
+            ->value('id');
+
+        return $firstUserId && $this->id === (int) $firstUserId;
+    }
+
+    /**
+     * Obtener el fundador del servicio para el dominio activo
+     */
+    public static function getServiceFounder(): ?User
+    {
+        $current = auth()->user();
+        $domain = $current ? $current->emailDomain() : null;
+        if (!$domain) return null;
+
+        return static::where('email', 'like', '%@' . $domain)
+            ->orderBy('id', 'asc')
+            ->first();
+    }
+
+    /**
      * Obtener el nombre del rol
      */
     public function getRoleName(): string

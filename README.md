@@ -241,6 +241,17 @@ Notas:
 - Se ha eliminado `docker-compose.prod.yml` para evitar duplicidad y confusión.
 - En Windows, WSL2 mejora compatibilidad con bind mounts.
 
+### Recrear contenedores desde cero
+
+Para reiniciar el entorno limpio y recompilar imágenes:
+- `docker compose down -v` — detiene y elimina contenedores, redes y volúmenes.
+- `docker compose build --no-cache` — reconstruye imágenes desde cero, sin usar caché.
+- `docker compose --env-file .env.docker up -d` — arranca los servicios en segundo plano.
+- `docker compose ps` — verifica estados; opcional `docker compose logs -f app` para revisar logs.
+
+Advertencia:
+- Este proceso elimina volúmenes; se pierden datos de `mysql` si no has hecho respaldo.
+
 ## Estructura del Proyecto
 
 ```

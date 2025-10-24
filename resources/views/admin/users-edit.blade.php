@@ -104,11 +104,22 @@
                 <!-- Rol -->
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700">Rol</label>
-                    <select name="role_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
-                        @foreach($roles as $role)
-                            <option value="{{ $role->id }}" {{ old('role_id', $user->role_id) == $role->id ? 'selected' : '' }}>{{ $role->display_name }}</option>
-                        @endforeach
-                    </select>
+                    @if($user->isServiceFounder())
+                        <div class="mt-1 p-3 bg-gray-100 border border-gray-300 rounded-md">
+                            <span class="text-gray-700 font-medium">{{ $user->getRoleName() }}</span>
+                            <p class="text-sm text-gray-600 mt-1">
+                                <i class="fas fa-lock mr-1"></i>
+                                El rol del fundador del servicio no puede ser modificado
+                            </p>
+                        </div>
+                        <input type="hidden" name="role_id" value="{{ $user->role_id }}">
+                    @else
+                        <select name="role_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
+                            @foreach($roles as $role)
+                                <option value="{{ $role->id }}" {{ old('role_id', $user->role_id) == $role->id ? 'selected' : '' }}>{{ $role->display_name }}</option>
+                            @endforeach
+                        </select>
+                    @endif
                     @error('role_id')
                         <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
                     @enderror
@@ -117,10 +128,21 @@
                 <!-- Estado -->
                 <div class="mb-6">
                     <label class="block text-sm font-medium text-gray-700">Estado</label>
-                    <select name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                        <option value="active" {{ old('status', $user->active ? 'active' : 'inactive') === 'active' ? 'selected' : '' }}>Activo</option>
-                        <option value="inactive" {{ old('status', $user->active ? 'active' : 'inactive') === 'inactive' ? 'selected' : '' }}>Inactivo</option>
-                    </select>
+                    @if($user->isServiceFounder())
+                        <div class="mt-1 p-3 bg-gray-100 border border-gray-300 rounded-md">
+                            <span class="text-gray-700 font-medium">{{ $user->active ? 'Activo' : 'Inactivo' }}</span>
+                            <p class="text-sm text-gray-600 mt-1">
+                                <i class="fas fa-lock mr-1"></i>
+                                El estado del fundador del servicio no puede ser modificado
+                            </p>
+                        </div>
+                        <input type="hidden" name="status" value="{{ $user->active ? 'active' : 'inactive' }}">
+                    @else
+                        <select name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <option value="active" {{ old('status', $user->active ? 'active' : 'inactive') === 'active' ? 'selected' : '' }}>Activo</option>
+                            <option value="inactive" {{ old('status', $user->active ? 'active' : 'inactive') === 'inactive' ? 'selected' : '' }}>Inactivo</option>
+                        </select>
+                    @endif
                 </div>
 
                 <div class="flex justify-end space-x-4">

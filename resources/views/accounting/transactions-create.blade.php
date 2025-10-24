@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{ app()->getLocale() }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,14 +12,13 @@
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-4">
+            <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
-                    <h1 class="text-2xl font-bold text-gray-900">SumAxia</h1>
-                    <span class="ml-4 text-gray-500">|</span>
-                    <h2 class="ml-4 text-lg font-semibold text-gray-700">Nueva Transacción</h2>
+                    <a href="{{ route('dashboard') }}" class="text-2xl font-bold text-blue-600">SumAxia</a>
+                    <span class="ml-2 text-sm text-gray-500">/ Transacciones</span>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <span class="text-sm text-gray-600">Bienvenido, {{ Auth::user()->name ?? 'Usuario' }}</span>
+                    <span class="text-sm text-gray-700">{{ Auth::user()->name }}</span>
                     @php $currentLocale = app()->getLocale(); @endphp
                     <div class="flex items-center space-x-2">
                         <a href="{{ route('locale.switch', ['lang' => 'es']) }}" aria-label="Español" title="Español"
@@ -27,12 +26,9 @@
                         <a href="{{ route('locale.switch', ['lang' => 'en']) }}" aria-label="English" title="English"
                            class="px-2 py-1 rounded border {{ $currentLocale === 'en' ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-700' }} hover:border-blue-500 hover:text-blue-600">🇺🇸</a>
                     </div>
-                    <form method="POST" action="{{ route('logout') }}" class="inline">
-                        @csrf
-                        <button type="submit" class="text-sm text-red-600 hover:text-red-800">
-                            <i class="fas fa-sign-out-alt mr-1"></i>Cerrar Sesión
-                        </button>
-                    </form>
+                    <a href="{{ route('dashboard') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-home mr-1"></i>Dashboard
+                    </a>
                 </div>
             </div>
         </div>
