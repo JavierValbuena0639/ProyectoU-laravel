@@ -49,13 +49,19 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [RegisterController::class, 'store']);
 });
 
+// Verificación por código (usuario autenticado, sin exigir verificación previa)
+Route::middleware('auth')->group(function () {
+    Route::get('/verify', [\App\Http\Controllers\Auth\VerificationController::class, 'show'])->name('auth.verify.show');
+    Route::post('/verify', [\App\Http\Controllers\Auth\VerificationController::class, 'verify'])->name('auth.verify.submit');
+});
+
 Route::post('/logout', function () {
     Auth::logout();
     return redirect()->route('login');
 })->name('logout');
 
-    // Rutas protegidas
-    Route::middleware(['auth', 'inactive'])->group(function () {
+// Rutas protegidas
+Route::middleware(['auth', 'inactive', 'verified_code'])->group(function () {
     Route::get('/dashboard', function () {
         $user = Auth::user();
         if ($user && method_exists($user, 'isAdmin') && $user->isAdmin()) {

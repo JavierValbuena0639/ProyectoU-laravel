@@ -279,6 +279,14 @@ sumaxia/
 ### Autenticación
 - `/login` - Inicio de sesión
 - `/register` - Registro de administrador (envía código de verificación por email)
+- `/verify` - Verificación de correo por código (obligatoria)
+
+Flujo de verificación por código:
+- Se envía un código de 6 dígitos al correo del usuario al registrarse o al ser creado por un administrador.
+- Mientras `email_verified_at` sea `null`, el usuario autenticado será redirigido a `/verify`.
+- En `/verify` el usuario ingresa el código; si coincide, se marca `email_verified_at` y se limpia el código.
+- Middleware `verified_code` protege las rutas autenticadas.
+- `/verify` - Ingreso del código de verificación (requerido antes de acceder al servicio)
 
 ### Dashboard
 - `/` - Dashboard principal
@@ -641,3 +649,4 @@ Notas de producción:
 Guías rápidas
 - Linux: ver [.pasos](./.pasos)
 - Windows: ver [pasos_Win](./pasos_Win)
+
