@@ -624,3 +624,9 @@ php artisan cache:clear
 Notas de producción:
 - Mantén Redis fuera de la red pública, usa autenticación y reglas de firewall.
 - Considera `SESSION_DRIVER=redis` si necesitas escalabilidad horizontal para sesiones.
+
+# Guía de Despliegue con Docker (Linux/Windows/macOS)
+
+Guías rápidas
+- Linux: ver [.pasos](./.pasos)
+- Windows: ver [pasos_Win](./pasos_Win)
