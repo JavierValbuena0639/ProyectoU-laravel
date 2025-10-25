@@ -41,12 +41,19 @@
                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     placeholder="000000" value="{{ old('code') }}">
                 @error('code')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                <p class="mt-1 text-xs text-gray-500">El código es válido por 10 minutos.</p>
             </div>
 
             <div class="flex justify-between items-center">
                 <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Verificar</button>
                 <span class="text-xs text-gray-500">¿No recibiste el código? Revisa spam o solicita reenvío.</span>
             </div>
+        </form>
+
+        <form action="{{ route('auth.verify.resend') }}" method="POST" class="mt-4">
+            @csrf
+            <button type="submit" class="px-3 py-2 text-sm bg-gray-200 text-gray-800 rounded hover:bg-gray-300">Reenviar código</button>
+            <p class="mt-2 text-xs text-gray-500">Puedes solicitar un nuevo código cada 60 segundos.</p>
         </form>
     </div>
 </body>

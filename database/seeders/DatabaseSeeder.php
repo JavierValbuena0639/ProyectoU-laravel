@@ -13,9 +13,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Crear admin/fundador primero para asegurar que sea el fundador por dominio
         $this->call([
-            TenantDemoSeeder::class,
             AdminUserCredentialsSeeder::class,
+            TenantDemoSeeder::class,
         ]);
     }
 }

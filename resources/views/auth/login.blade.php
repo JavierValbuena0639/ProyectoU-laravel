@@ -47,6 +47,9 @@
                         class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         placeholder="tu@email.com"
                         value="{{ old('email') }}"
+                        inputmode="email"
+                        pattern="^\S+$"
+                        oninput="this.value = this.value.replace(/\s/g, '')"
                     >
                     @error('email')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -66,6 +69,9 @@
                             required 
                             class="w-full pr-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             placeholder="••••••••"
+                            inputmode="text"
+                            pattern="^\S+$"
+                            oninput="this.value = this.value.replace(/\s/g, '')"
                         >
                         <button 
                             type="button"
@@ -208,6 +214,10 @@
                             localStorage.removeItem('remembered_email');
                         } catch (e) { /* ignore storage errors */ }
                     }
+                    // Extra: sanitizar espacios por si el navegador ignora pattern
+                    if (emailInput) emailInput.value = (emailInput.value || '').replace(/\s/g, '');
+                    var pwInput = document.getElementById('password');
+                    if (pwInput) pwInput.value = (pwInput.value || '').replace(/\s/g, '');
                 });
             }
         });

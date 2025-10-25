@@ -86,8 +86,9 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Nombre de la Empresa
                             </label>
-                            <input type="text" value="SumAxia" 
+                            <input type="text" value="SumAxia" readonly
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <p class="mt-2 text-xs text-gray-500">Campo bloqueado. Para cambios, contacte al administrador.</p>
                         </div>
                         
                         <div>
@@ -190,69 +191,7 @@
                 </div>
             </div>
 
-            <!-- Email Settings -->
-            <div class="bg-white rounded-lg shadow">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-900">
-                        <i class="fas fa-envelope mr-2 text-purple-600"></i>{{ __('config.email') }}
-                    </h3>
-                </div>
-                <div class="p-6">
-                    <form class="space-y-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Servidor SMTP
-                            </label>
-                            <input type="text" placeholder="smtp.gmail.com" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Puerto
-                                </label>
-                                <input type="number" value="587" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    Encriptación
-                                </label>
-                                <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="tls">TLS</option>
-                                    <option value="ssl">SSL</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Usuario SMTP
-                            </label>
-                            <input type="email" placeholder="usuario@empresa.com" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Contraseña SMTP
-                            </label>
-                            <input type="password" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        
-                        <div class="flex space-x-4">
-                            <button type="button" class="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors">
-                                <i class="fas fa-paper-plane mr-2"></i>Probar Conexión
-                            </button>
-                            <button type="submit" class="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors">
-                                <i class="fas fa-save mr-2"></i>Guardar
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+            <!-- Configuración de Email removida por requerimiento -->
 
             <!-- Scripts para lógica dinámica de región/zonas/formato/idioma -->
             <script>

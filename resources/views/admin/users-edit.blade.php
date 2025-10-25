@@ -84,7 +84,12 @@
                 <!-- Contraseña -->
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700">Contraseña (opcional)</label>
-                    <input type="password" id="password" name="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Dejar en blanco para no cambiar">
+                    <div class="relative">
+                        <input type="password" id="password" name="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm pr-10" placeholder="Dejar en blanco para no cambiar">
+                        <button type="button" id="toggle-password" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700" aria-label="Mostrar/Ocultar contraseña">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                     <div class="mt-2 text-xs text-gray-600" id="pw-requirements">
                         <p class="font-medium">Requisitos:</p>
                         <div class="grid grid-cols-2 gap-x-3 gap-y-2">
@@ -95,11 +100,103 @@
                             <div><span id="req-symbol" class="inline-block px-3 py-1.5 rounded bg-gray-100">símbolo</span></div>
                         </div>
                     </div>
-                    <input type="password" id="password_confirmation" name="password_confirmation" class="mt-2 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Confirmar contraseña">
+                    <div class="relative mt-2">
+                        <input type="password" id="password_confirmation" name="password_confirmation" class="block w-full rounded-md border-gray-300 shadow-sm pr-10" placeholder="Confirmar contraseña">
+                        <button type="button" id="toggle-password-confirmation" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700" aria-label="Mostrar/Ocultar confirmación">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <p id="pw-match" class="text-sm mt-1 hidden"></p>
                     @error('password')
                         <p class="text-red-600 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
+
+                <script>
+                    (function(){
+                        const pw = document.getElementById('password');
+                        const pwc = document.getElementById('password_confirmation');
+                        const togglePw = document.getElementById('toggle-password');
+                        const togglePwc = document.getElementById('toggle-password-confirmation');
+                        const matchEl = document.getElementById('pw-match');
+                        if (!pw) return;
+                        const reqs = {
+                            length: document.getElementById('req-length'),
+                            lower: document.getElementById('req-lower'),
+                            upper: document.getElementById('req-upper'),
+                            number: document.getElementById('req-number'),
+                            symbol: document.getElementById('req-symbol')
+                        };
+
+                        function setBadge(el, ok){
+                            if (!el) return;
+                            const label = el.dataset.label || el.textContent;
+                            el.dataset.label = label;
+                            el.textContent = (ok ? '✔ ' : '✖ ') + label;
+                            el.className = 'inline-block px-3 py-1.5 rounded ' + (ok ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700');
+                        }
+
+                        function updateMatch(){
+                            if (!pwc.value) {
+                                matchEl.className = 'text-sm mt-1 hidden';
+                                matchEl.textContent = '';
+                                return;
+                            }
+                            const ok = pw.value === pwc.value;
+                            matchEl.className = 'text-sm mt-1 ' + (ok ? 'text-green-600' : 'text-red-600');
+                            matchEl.textContent = ok ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden';
+                        }
+
+                        function checkPassword(p){
+                            const hasValue = p && p.length > 0;
+                            const length = p.length >= 8;
+                            const lower = /[a-z]/.test(p);
+                            const upper = /[A-Z]/.test(p);
+                            const number = /[0-9]/.test(p);
+                            const symbol = /[^A-Za-z0-9]/.test(p);
+                            setBadge(reqs.length, length);
+                            setBadge(reqs.lower, lower);
+                            setBadge(reqs.upper, upper);
+                            setBadge(reqs.number, number);
+                            setBadge(reqs.symbol, symbol);
+                            const ok = length && lower && upper && number && symbol;
+                            pw.setCustomValidity(!hasValue || ok ? '' : 'La contraseña no cumple los requisitos');
+                        }
+
+                        pw.addEventListener('input', function(){
+                            checkPassword(pw.value);
+                            if (pwc.value && pw.value !== pwc.value) {
+                                pwc.setCustomValidity('Las contraseñas no coinciden');
+                            } else {
+                                pwc.setCustomValidity('');
+                            }
+                            updateMatch();
+                        });
+
+                        pwc.addEventListener('input', function(){
+                            if (pw.value !== pwc.value) {
+                                this.setCustomValidity('Las contraseñas no coinciden');
+                            } else {
+                                this.setCustomValidity('');
+                            }
+                            updateMatch();
+                        });
+
+                        togglePw.addEventListener('click', function(){
+                            const isHidden = pw.type === 'password';
+                            pw.type = isHidden ? 'text' : 'password';
+                            this.innerHTML = isHidden ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+                        });
+                        togglePwc.addEventListener('click', function(){
+                            const isHidden = pwc.type === 'password';
+                            pwc.type = isHidden ? 'text' : 'password';
+                            this.innerHTML = isHidden ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+                        });
+
+                        checkPassword(pw.value || '');
+                        updateMatch();
+                    })();
+                </script>
 
                 <!-- Rol -->
                 <div class="mb-4">
@@ -152,62 +249,5 @@
             </form>
         </div>
     </div>
-    <script>
-        (function(){
-            const pw = document.getElementById('password');
-            const pwc = document.getElementById('password_confirmation');
-            if (!pw) return;
-            const reqs = {
-                length: document.getElementById('req-length'),
-                lower: document.getElementById('req-lower'),
-                upper: document.getElementById('req-upper'),
-                number: document.getElementById('req-number'),
-                symbol: document.getElementById('req-symbol')
-            };
-
-            function setBadge(el, ok){
-                if (!el) return;
-                const label = el.dataset.label || el.textContent;
-                el.dataset.label = label;
-                el.textContent = (ok ? '✔ ' : '✖ ') + label;
-                el.className = 'inline-block px-3 py-1.5 rounded ' + (ok ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700');
-            }
-
-            function checkPassword(p){
-                const hasValue = p && p.length > 0;
-                const length = p.length >= 8;
-                const lower = /[a-z]/.test(p);
-                const upper = /[A-Z]/.test(p);
-                const number = /[0-9]/.test(p);
-                const symbol = /[^A-Za-z0-9]/.test(p);
-                setBadge(reqs.length, length);
-                setBadge(reqs.lower, lower);
-                setBadge(reqs.upper, upper);
-                setBadge(reqs.number, number);
-                setBadge(reqs.symbol, symbol);
-                const ok = length && lower && upper && number && symbol;
-                pw.setCustomValidity(!hasValue || ok ? '' : 'La contraseña no cumple los requisitos');
-            }
-
-            pw.addEventListener('input', function(){
-                checkPassword(pw.value);
-                if (pwc.value && pw.value !== pwc.value) {
-                    pwc.setCustomValidity('Las contraseñas no coinciden');
-                } else {
-                    pwc.setCustomValidity('');
-                }
-            });
-
-            pwc.addEventListener('input', function(){
-                if (pw.value !== pwc.value) {
-                    this.setCustomValidity('Las contraseñas no coinciden');
-                } else {
-                    this.setCustomValidity('');
-                }
-            });
-
-            checkPassword(pw.value || '');
-        })();
-    </script>
 </body>
 </html>

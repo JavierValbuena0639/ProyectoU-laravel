@@ -85,10 +85,13 @@ Sumaxia es un sistema integral de gestión empresarial desarrollado en Laravel q
 ### 🧪 Validaciones y Middleware
 - Validación de dominio al crear usuarios: se bloquea el envío si el dominio del correo no coincide con el dominio esperado y se muestra un aviso.
 - Conversión automática de entradas a minúsculas: middleware global transforma todos los campos de texto en minúsculas (excluye `password` y `password_confirmation`).
+- Login sin espacios: los inputs de `email` y `password` bloquean espacios en el cliente.
+- Nombre legal en registro: el campo `name` debe ser persona natural o razón social registrada ante Cámara y Comercio.
  - Roles: el rol `soporte_interno` no aparece en formularios de creación/edición de usuarios y no puede ser asignado manualmente.
 
 ### 📧 Verificación por Correo
-- Envío de código de verificación (6 dígitos) al registrar administrador en `/register` y al crear usuarios desde `/admin/users/create`.
+- Envío de código diario `YYMMDD` (6 dígitos) al registrar administrador en `/register` y al crear usuarios desde `/admin/users/create`.
+- El código tiene un TTL de 10 minutos desde el último envío y el usuario puede reenviar desde `/verify` con un enfriamiento de 60 segundos.
 - Mailable: `app/Mail/VerificationCodeMail.php` y plantilla: `resources/views/emails/verification-code.blade.php`.
 - En creación de usuarios por administrador se valida que el dominio del email coincida con el dominio esperado antes de enviar el código.
 
@@ -282,11 +285,12 @@ sumaxia/
 - `/verify` - Verificación de correo por código (obligatoria)
 
 Flujo de verificación por código:
-- Se envía un código de 6 dígitos al correo del usuario al registrarse o al ser creado por un administrador.
+- Se envía un código diario `YYMMDD` (6 dígitos) al correo al registrarse o al ser creado por un administrador.
 - Mientras `email_verified_at` sea `null`, el usuario autenticado será redirigido a `/verify`.
-- En `/verify` el usuario ingresa el código; si coincide, se marca `email_verified_at` y se limpia el código.
+- En `/verify` el usuario ingresa el código; debe coincidir con el enviado y no haber expirado (TTL 10 minutos).
+- Botón "Reenviar código" disponible con enfriamiento de 60 segundos; envía el código diario actual.
 - Middleware `verified_code` protege las rutas autenticadas.
-- `/verify` - Ingreso del código de verificación (requerido antes de acceder al servicio)
+- `/verify` - Ingreso del código de verificación (obligatorio antes de acceder al servicio)
 
 ### Dashboard
 - `/` - Dashboard principal
@@ -649,4 +653,3 @@ Notas de producción:
 Guías rápidas
 - Linux: ver [.pasos](./.pasos)
 - Windows: ver [pasos_Win](./pasos_Win)
-

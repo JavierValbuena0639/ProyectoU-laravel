@@ -89,3 +89,13 @@ Guía paso a paso (Windows) — Virtual host sumaxia.local
 - Si `node` aparece reiniciando, no afecta el backend; es opcional para hot reload.
 - Para acceder sin puerto (80:80) tendrías que cambiar el mapeo en `docker-compose.yml`; actualmente se usa `8000:80`.
 - En Windows, evita usar `curl` alias de PowerShell; usa `Invoke-WebRequest` o `curl.exe`.
+
+15) Rebuild completo del stack (comandos)
+- Ejecuta en PowerShell, dentro del directorio del proyecto:
+  docker compose down -v            # detiene y elimina contenedores, redes y volúmenes
+  docker compose build --no-cache   # reconstruye imágenes desde cero
+  docker compose --env-file .env.docker up -d   # levanta servicios con el entorno .env.docker
+  docker compose ps                 # verifica estados
+- Alternativa con script (Windows):
+  powershell -ExecutionPolicy Bypass -File scripts/rebuild_stack.ps1
+

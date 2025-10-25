@@ -113,6 +113,17 @@
                                 <a href="{{ route('admin.users.edit', $user) }}" class="text-blue-600 hover:text-blue-900 mr-3" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
+                                <a href="{{ route('admin.users.2fa', $user) }}" class="text-indigo-600 hover:text-indigo-900 mr-3" title="2FA">
+                                    <i class="fas fa-shield-alt"></i>
+                                </a>
+                                @if(is_null($user->email_verified_at))
+                                    <form method="POST" action="{{ route('admin.users.resend_code', $user) }}" class="inline mr-3">
+                                        @csrf
+                                        <button type="submit" class="text-orange-600 hover:text-orange-800" title="Reenviar código de verificación">
+                                            <i class="fas fa-envelope"></i>
+                                        </button>
+                                    </form>
+                                @endif
                                 @if($user->isServiceFounder())
                                     <span class="text-gray-400 cursor-not-allowed" title="El fundador del servicio no puede ser desactivado">
                                         <i class="fas fa-lock"></i>

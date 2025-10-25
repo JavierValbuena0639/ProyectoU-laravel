@@ -18,7 +18,7 @@ class EnsureEmailCodeVerified
         // Rutas exentas de verificación
         $exempt = [
             'login', 'logout', 'register', 'password.reset', 'password.update', 'password.email', 'password.forgot_admin',
-            'locale.switch', 'auth.verify.show', 'auth.verify.submit'
+            'locale.switch', 'auth.verify.show', 'auth.verify.submit', 'auth.verify.resend'
         ];
         $currentName = optional($request->route())->getName();
         if (in_array($currentName, $exempt, true)) {
