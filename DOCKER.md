@@ -629,3 +629,37 @@ docker-compose exec app php artisan migrate --force
 ---
 
 Esta guía proporciona una configuración completa para desplegar Sumaxia en producción usando Docker en Linux con MySQL.
+## Alias de dominio y sesión (sumaxia.local)
+
+- La app y Nginx están configurados para `sumaxia.local:8000`.
+- Prioriza configurar el alias en el sistema operativo antes de arrancar:
+  - Añade en `hosts`: `127.0.0.1 sumaxia.local` (Windows: `C:\Windows\System32\drivers\etc\hosts`)
+  - Limpia DNS del sistema: `ipconfig /flushdns`
+  - Limpia cache DNS del navegador: `chrome://net-internals/#dns` → Clear host cache
+  - Desactiva temporalmente DNS seguro (DoH) en el navegador si aún ves NXDOMAIN
+- Verifica con `ping sumaxia.local` que apunta a `127.0.0.1`.
+
+### Variables relevantes
+
+En `.env.docker`:
+
+```env
+APP_URL=http://sumaxia.local:8000
+SESSION_DOMAIN=sumaxia.local
+SESSION_SAME_SITE=lax
+SESSION_SECURE_COOKIE=false
+```
+
+### Nota sobre 419 (CSRF) y `localhost`
+
+- Al fijar `SESSION_DOMAIN=sumaxia.local`, usar `http://localhost:8000` puede producir `419 Page Expired`.
+- Usa siempre `http://sumaxia.local:8000`. Si necesitas entrar por `localhost` para pruebas rápidas, deja `SESSION_DOMAIN` vacío de forma temporal y limpia cachés:
+  - `docker compose exec app php artisan config:clear`
+  - `docker compose exec app php artisan cache:clear`
+  - `docker compose exec app php artisan route:clear`
+  - `docker compose exec app php artisan view:clear`
+
+# Habilitar sitio
+sudo ln -s /etc/nginx/sites-available/sumaxia /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
