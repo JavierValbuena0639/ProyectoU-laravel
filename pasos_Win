@@ -98,4 +98,3 @@ Guía paso a paso (Windows) — Virtual host sumaxia.local
   docker compose ps                 # verifica estados
 - Alternativa con script (Windows):
   powershell -ExecutionPolicy Bypass -File scripts/rebuild_stack.ps1
-
