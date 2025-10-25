@@ -87,7 +87,8 @@ class UserController extends Controller
 
         // Enviar código verificador por correo al nuevo usuario
         try {
-            $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            // Código diario: YYMMDD (6 dígitos)
+            $code = now()->format('ymd');
             Mail::to($user->email)->send(new VerificationCodeMail($user, $code));
             // Guardar código y marca de envío
             $user->forceFill([
@@ -124,10 +125,15 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        $pw = Password::min(8)->letters()->mixedCase()->numbers()->symbols();
+        if (app()->environment('production')) {
+            $pw = $pw->uncompromised();
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id, new NotPublicEmailDomain()],
-            'password' => ['nullable', 'string', Password::min(8)->letters()->mixedCase()->numbers()->symbols()->uncompromised(), 'confirmed'],
+            'password' => ['nullable', 'string', $pw, 'confirmed'],
             'role_id' => ['required', 'integer', 'exists:roles,id'],
             'status' => ['nullable', 'in:active,inactive'],
         ]);
@@ -175,5 +181,37 @@ class UserController extends Controller
         $user->save();
 
         return redirect()->route('admin.users')->with('success', 'Usuario desactivado correctamente');
+    }
+
+    /**
+     * Reenviar código de verificación por email
+     */
+    public function resendVerificationCode(User $user)
+    {
+        // Validar que el admin sólo gestione usuarios de su mismo dominio
+        $admin = auth()->user();
+        $adminDomain = $admin ? $admin->emailDomain() : '';
+        $userDomain = $user ? $user->emailDomain() : '';
+        if ($adminDomain !== $userDomain) {
+            return redirect()->route('admin.users')->withErrors(['user' => 'Solo puedes gestionar usuarios del dominio ' . $adminDomain]);
+        }
+
+        // Si ya está verificado, no reenviar
+        if (!is_null($user->email_verified_at)) {
+            return redirect()->route('admin.users')->with('success', 'Este usuario ya tiene el correo verificado.');
+        }
+
+        try {
+            // Código diario: YYMMDD (6 dígitos)
+            $code = now()->format('ymd');
+            Mail::to($user->email)->send(new VerificationCodeMail($user, $code));
+            $user->forceFill([
+                'verification_code' => $code,
+                'verification_code_sent_at' => now(),
+            ])->save();
+            return redirect()->route('admin.users')->with('success', 'Código de verificación reenviado exitosamente.');
+        } catch (\Throwable $e) {
+            return redirect()->route('admin.users')->withErrors(['user' => 'No fue posible reenviar el código: ' . $e->getMessage()]);
+        }
     }
 }

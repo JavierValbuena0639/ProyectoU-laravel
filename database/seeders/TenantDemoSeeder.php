@@ -7,13 +7,16 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
 use Carbon\Carbon;
+use App\Mail\VerificationCodeMail;
+use App\Models\User;
 
 class TenantDemoSeeder extends Seeder
 {
     public function run(): void
     {
-        // Limpieza total de tablas clave (desactivar FKs para TRUNCATE en MySQL)
+        // Limpieza de tablas demo (conservar usuarios para mantener fundador/admin)
         Schema::disableForeignKeyConstraints();
         DB::table('admin_user_accounts')->truncate();
         DB::table('audits')->truncate();
@@ -22,10 +25,10 @@ class TenantDemoSeeder extends Seeder
         DB::table('invoices')->truncate();
         DB::table('suppliers')->truncate();
         DB::table('accounts')->truncate();
-        DB::table('users')->truncate();
+        // NO truncar usuarios ni roles para no perder al fundador/admin
         Schema::enableForeignKeyConstraints();
 
-        // Roles mínimos
+        // Roles mínimos (upsert seguro)
         DB::table('roles')->upsert([
             ['id' => 1, 'name' => 'admin', 'display_name' => 'Administrador', 'description' => 'Admin role', 'active' => true],
             ['id' => 2, 'name' => 'user', 'display_name' => 'Usuario', 'description' => 'User role', 'active' => true],
@@ -34,24 +37,49 @@ class TenantDemoSeeder extends Seeder
 
         $domain = 'sumaxia.com';
 
-        // Crear 5 usuarios en la cuenta demo
-        $users = [];
+        // Crear 5 usuarios en la cuenta demo (todos rol usuario, verificación pendiente)
+        $createdUsers = [];
         for ($i = 1; $i <= 5; $i++) {
             $email = "user{$i}@{$domain}";
-            $users[$i] = DB::table('users')->insertGetId([
+            // Evitar duplicar si ya existe
+            $exists = DB::table('users')->where('email', $email)->first();
+            if ($exists) {
+                $createdUsers[$i] = (int) $exists->id;
+                continue;
+            }
+            $userId = DB::table('users')->insertGetId([
                 'name' => "Usuario {$i}",
                 'email' => $email,
                 'password' => Hash::make('demo123'),
-                'role_id' => $i === 1 ? 1 : 2, // user1 admin, resto usuarios
+                'role_id' => 2, // todos usuarios; único admin es admin@sumaxia.com
                 'active' => true,
+                'email_verified_at' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            $createdUsers[$i] = $userId;
+
+            // Generar y enviar código de verificación
+            try {
+                $userModel = User::find($userId);
+                $code = now()->format('ymd'); // código diario YYMMDD
+                Mail::to($userModel->email)->send(new VerificationCodeMail($userModel, $code));
+                $userModel->forceFill([
+                    'verification_code' => $code,
+                    'verification_code_sent_at' => now(),
+                    'email_verified_at' => null,
+                ])->save();
+            } catch (\Throwable $e) {
+                // No bloquear el seeding si falla el envío
+            }
         }
 
-        // Vincular admin con otros usuarios
-        $adminId = $users[1];
-        foreach (array_slice($users, 1) as $uid) {
+        // Vincular admin con los usuarios demo
+        $adminId = (int) DB::table('users')->where('email', 'admin@sumaxia.com')->value('id');
+        if (!$adminId && isset($createdUsers[1])) {
+            $adminId = (int) $createdUsers[1]; // fallback
+        }
+        foreach ($createdUsers as $uid) {
             DB::table('admin_user_accounts')->insert([
                 'admin_id' => $adminId,
                 'user_id' => $uid,
@@ -112,8 +140,8 @@ class TenantDemoSeeder extends Seeder
 
         // Generar facturas aleatorias para usuarios
         for ($i = 1; $i <= 15; $i++) {
-            $userIdx = array_rand($users);
-            $userId = $users[$userIdx];
+            $userIdx = array_rand($createdUsers);
+            $userId = $createdUsers[$userIdx];
             $invoiceDate = Carbon::now()->subDays(rand(0, 60));
             $dueDate = (clone $invoiceDate)->addDays([15,30,45][array_rand([15,30,45])]);
             $subtotal = rand(5, 25) * 100000;
@@ -146,8 +174,8 @@ class TenantDemoSeeder extends Seeder
 
         // Generar nóminas aleatorias
         for ($i = 1; $i <= 10; $i++) {
-            $userIdx = array_rand($users);
-            $userId = $users[$userIdx];
+            $userIdx = array_rand($createdUsers);
+            $userId = $createdUsers[$userIdx];
             $start = Carbon::now()->firstOfMonth()->subMonths(rand(0,3));
             $end = (clone $start)->endOfMonth();
             $basic = rand(2, 6) * 1000000;
@@ -191,8 +219,8 @@ class TenantDemoSeeder extends Seeder
 
         // Generar transacciones contables básicas
         for ($i = 1; $i <= 20; $i++) {
-            $userIdx = array_rand($users);
-            $userId = $users[$userIdx];
+            $userIdx = array_rand($createdUsers);
+            $userId = $createdUsers[$userIdx];
             $date = Carbon::now()->subDays(rand(1, 90));
             $type = ['ingreso','egreso','diario','ajuste'][array_rand(['ingreso','egreso','diario','ajuste'])];
             $debit = rand(1, 30) * 50000;
@@ -214,7 +242,7 @@ class TenantDemoSeeder extends Seeder
         }
 
         // Auditoría ligera
-        foreach ($users as $uid) {
+        foreach ($createdUsers as $uid) {
             DB::table('audits')->insert([
                 'user_id' => $uid,
                 'event' => 'user_registered',
@@ -230,5 +258,6 @@ class TenantDemoSeeder extends Seeder
                 'updated_at' => now(),
             ]);
         }
+        // Código de verificación diario ya establecido al crear usuarios demo arriba
     }
 }

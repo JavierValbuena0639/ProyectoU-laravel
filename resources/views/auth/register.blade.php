@@ -28,6 +28,9 @@
                         <i class="fas fa-user mr-2"></i>{{ __('auth.name') }}
                     </label>
                     <input id="name" name="name" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" value="{{ old('name') }}">
+                    <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+                        Ingresa el nombre de la persona natural o la razón social de la empresa registrada ante Cámara y Comercio.
+                    </div>
                     @error('name')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
 

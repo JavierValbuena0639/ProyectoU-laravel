@@ -25,6 +25,14 @@ Route::get('/login', function () {
 
 Route::post('/login', [App\Http\Controllers\Auth\LoginController::class, 'login']);
 
+// Desafío 2FA tras credenciales válidas
+Route::get('/two-factor', [App\Http\Controllers\Auth\TwoFactorLoginController::class, 'show'])
+    ->name('auth.twofa.show')
+    ->middleware('guest');
+Route::post('/two-factor', [App\Http\Controllers\Auth\TwoFactorLoginController::class, 'verify'])
+    ->name('auth.twofa.submit')
+    ->middleware('guest');
+
 // Envío de enlace de recuperación para el administrador
 Route::post('/password/forgot-admin', [LoginController::class, 'sendAdminResetLink'])
     ->name('password.forgot_admin')
@@ -53,6 +61,7 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/verify', [\App\Http\Controllers\Auth\VerificationController::class, 'show'])->name('auth.verify.show');
     Route::post('/verify', [\App\Http\Controllers\Auth\VerificationController::class, 'verify'])->name('auth.verify.submit');
+    Route::post('/verify/resend', [\App\Http\Controllers\Auth\VerificationController::class, 'resend'])->name('auth.verify.resend');
 });
 
 Route::post('/logout', function () {
@@ -90,6 +99,11 @@ Route::middleware(['auth', 'inactive', 'verified_code'])->group(function () {
         Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
         Route::post('/users/{user}/deactivate', [AdminUserController::class, 'deactivate'])->name('users.deactivate');
+        Route::post('/users/{user}/resend-code', [AdminUserController::class, 'resendVerificationCode'])->name('users.resend_code');
+        // 2FA para usuarios (admin)
+        Route::get('/users/{user}/2fa', [\App\Http\Controllers\Admin\TwoFactorController::class, 'show'])->name('users.2fa');
+        Route::post('/users/{user}/2fa/verify', [\App\Http\Controllers\Admin\TwoFactorController::class, 'verify'])->name('users.2fa.verify');
+        Route::post('/users/{user}/2fa/disable', [\App\Http\Controllers\Admin\TwoFactorController::class, 'disable'])->name('users.2fa.disable');
         
         // Rutas para gestión de roles
         Route::get('/roles', function () {

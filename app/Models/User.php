@@ -27,6 +27,9 @@ class User extends Authenticatable
         'role_id',
         'active',
         'last_login',
+        'two_factor_enabled',
+        'two_factor_secret',
+        'two_factor_confirmed_at',
     ];
 
     /**
@@ -51,6 +54,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'active' => 'boolean',
             'last_login' => 'datetime',
+            'two_factor_enabled' => 'boolean',
+            'two_factor_confirmed_at' => 'datetime',
         ];
     }
 

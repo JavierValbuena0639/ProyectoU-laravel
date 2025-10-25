@@ -92,3 +92,12 @@ Guía paso a paso (Linux Mint) — Clonar con Git y configurar
   user: "1000:1000"
   Ten en cuenta que si el contenedor no corre como root, algunos `chown` del script podrían no aplicar.
 - El comando de arranque del servicio `app` ya está configurado a `/usr/local/bin/init-app.sh` para automatizar permisos y preparación del entorno.
+
+15) Rebuild completo del stack (comandos)
+- Ejecuta en consola, dentro del directorio del proyecto:
+  docker compose down -v            # detiene y elimina contenedores, redes y volúmenes
+  docker compose build --no-cache   # reconstruye imágenes desde cero, sin caché
+  docker compose --env-file .env.docker up -d   # levanta servicios con el entorno .env.docker
+  docker compose ps                 # verifica estados
+- Alternativa con script:
+  chmod +x scripts/rebuild_stack.sh && ./scripts/rebuild_stack.sh

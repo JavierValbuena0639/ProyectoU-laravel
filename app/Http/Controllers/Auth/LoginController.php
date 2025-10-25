@@ -30,42 +30,49 @@ class LoginController extends Controller
             'password' => 'required|string|min:6',
         ]);
 
-        $credentials = $request->only('email', 'password');
         $remember = $request->boolean('remember');
+        $email = $request->input('email');
+        $password = $request->input('password');
 
-        if (Auth::attempt($credentials, $remember)) {
-            $request->session()->regenerate();
-            
-            // Actualizar último login
-            Auth::user()->update([
-                'last_login' => now()
+        $user = User::where('email', $email)->first();
+        if (!$user || !Hash::check($password, $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => ['Las credenciales proporcionadas no coinciden con nuestros registros.'],
             ]);
-
-            // Bloquear acceso si el usuario está inactivo
-            $user = Auth::user();
-            if (!$user->active) {
-                Auth::logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-                throw ValidationException::withMessages([
-                    'email' => ['Tu cuenta está desactivada y no puede acceder.'],
-                ]);
-            }
-
-            // Redirigir según el rol del usuario
-            if ($user->isAdmin()) {
-                return redirect()->intended('/admin/dashboard');
-            }
-            if (method_exists($user, 'isSupport') && $user->isSupport()) {
-                return redirect()->intended('/admin/database');
-            }
-            
-            return redirect()->intended('/dashboard');
         }
 
-        throw ValidationException::withMessages([
-            'email' => ['Las credenciales proporcionadas no coinciden con nuestros registros.'],
+        // Bloquear acceso si el usuario está inactivo
+        if (!$user->active) {
+            throw ValidationException::withMessages([
+                'email' => ['Tu cuenta está desactivada y no puede acceder.'],
+            ]);
+        }
+
+        // Si el usuario tiene 2FA activo, solicitar desafío antes de completar login
+        if ($user->two_factor_enabled) {
+            $request->session()->put('two_factor:user_id', $user->id);
+            $request->session()->put('two_factor:remember', $remember);
+            return redirect()->route('auth.twofa.show')->with('status', 'Introduce el código de 6 dígitos para completar el acceso.');
+        }
+
+        // Login normal (sin 2FA)
+        Auth::login($user, $remember);
+        $request->session()->regenerate();
+
+        // Actualizar último login
+        $user->update([
+            'last_login' => now()
         ]);
+
+        // Redirigir según el rol del usuario
+        if ($user->isAdmin()) {
+            return redirect()->intended('/admin/dashboard');
+        }
+        if (method_exists($user, 'isSupport') && $user->isSupport()) {
+            return redirect()->intended('/admin/database');
+        }
+        
+        return redirect()->intended('/dashboard');
     }
 
     /**
