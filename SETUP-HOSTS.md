@@ -30,6 +30,22 @@ Después de configurar el archivo hosts:
 2. Accede a la aplicación en: `http://sumaxia.local:8000`
 3. También funcionará con: `http://localhost:8000` (como respaldo)
 
+### Paso prioritario en Windows (si no resuelve)
+
+Si ves `DNS_PROBE_FINISHED_NXDOMAIN` al abrir `sumaxia.local:8000`:
+
+- Ejecuta `ipconfig /flushdns` en PowerShell o CMD
+- En Chrome/Edge, ve a `chrome://net-internals/#dns` o `edge://net-internals/#dns` y pulsa "Clear host cache"
+- Desactiva temporalmente "Usar DNS seguro (DoH)" en el navegador: Ajustes → Privacidad y seguridad → DNS seguro → Off
+- Verifica con `ping sumaxia.local` que responde `127.0.0.1`
+
+### Nota sobre cookies y 419
+
+- Si `SESSION_DOMAIN=sumaxia.local` está configurado (por defecto en `.env.docker`), entrar por `localhost:8000` puede causar `419 Page Expired`.
+- Usa siempre `http://sumaxia.local:8000`. Si necesitas usar `localhost` como respaldo, deja `SESSION_DOMAIN` vacío temporalmente y limpia cachés (`config:clear`, `cache:clear`, `route:clear`, `view:clear`).
+
+mirar la imagen como_debe_salir.png de acá
+
 ## Servicios Disponibles
 
 - **Aplicación principal**: `http://sumaxia.local:8000`
