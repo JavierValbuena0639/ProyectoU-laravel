@@ -87,8 +87,8 @@ class UserController extends Controller
 
         // Enviar código verificador por correo al nuevo usuario
         try {
-            // Código diario: YYMMDD (6 dígitos)
-            $code = now()->format('ymd');
+            // OTP aleatorio: 6 dígitos
+            $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             Mail::to($user->email)->send(new VerificationCodeMail($user, $code));
             // Guardar código y marca de envío
             $user->forceFill([
@@ -195,15 +195,15 @@ class UserController extends Controller
         if ($adminDomain !== $userDomain) {
             return redirect()->route('admin.users')->withErrors(['user' => 'Solo puedes gestionar usuarios del dominio ' . $adminDomain]);
         }
-
+    
         // Si ya está verificado, no reenviar
         if (!is_null($user->email_verified_at)) {
             return redirect()->route('admin.users')->with('success', 'Este usuario ya tiene el correo verificado.');
         }
-
+    
         try {
-            // Código diario: YYMMDD (6 dígitos)
-            $code = now()->format('ymd');
+            // OTP aleatorio: 6 dígitos
+            $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             Mail::to($user->email)->send(new VerificationCodeMail($user, $code));
             $user->forceFill([
                 'verification_code' => $code,

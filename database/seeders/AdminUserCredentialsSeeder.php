@@ -57,20 +57,13 @@ class AdminUserCredentialsSeeder extends Seeder
             ]
         );
 
-        // Enviar códigos de verificación a usuarios semilla y guardar código (formato diario YYMMDD)
+        // Desactivar envío de códigos durante el seeding; dejar verificación pendiente
         foreach ([$admin, $demoUser, $support] as $user) {
-            try {
-                $code = now()->format('ymd');
-                Mail::to($user->email)->send(new VerificationCodeMail($user, $code));
-                $user->forceFill([
-                    'verification_code' => $code,
-                    'verification_code_sent_at' => now(),
-                    'email_verified_at' => null,
-                ])->save();
-            } catch (\Throwable $e) {
-                // No bloquear el seeding si el correo falla
-                // Puedes consultar Mailpit para ver envíos en dev
-            }
+            $user->forceFill([
+                'verification_code' => null,
+                'verification_code_sent_at' => null,
+                'email_verified_at' => null,
+            ])->save();
         }
 
         // Eliminar la cuenta anterior de soporte si existe

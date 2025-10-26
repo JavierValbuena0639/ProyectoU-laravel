@@ -51,23 +51,41 @@ class RegisterController extends Controller
 
         // Generar y enviar código verificador por correo
         try {
-            // Código diario: YYMMDD (6 dígitos)
-            $code = now()->format('ymd');
+            // OTP aleatorio: 6 dígitos
+            $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             Mail::to($user->email)->send(new VerificationCodeMail($user, $code));
             $user->forceFill([
                 'verification_code' => $code,
                 'verification_code_sent_at' => now(),
             ])->save();
-
-            // Mensaje informativo para el administrador recién registrado
-            session()->flash('status', 'Hemos enviado un código de verificación al correo ' . $user->email . '.');
         } catch (\Throwable $e) {
-            // No bloquear el flujo si el correo falla; mostrar aviso
             session()->flash('error', 'No fue posible enviar el correo de verificación: ' . $e->getMessage());
         }
 
         Auth::login($user);
 
         return redirect()->route('admin.dashboard');
+    }
+    protected function create(array $data)
+    {
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+        ]);
+
+        try {
+            // Enviar OTP aleatorio de 6 dígitos en el primer envío
+            $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            Mail::to($user->email)->send(new VerificationCodeMail($user, $code));
+            $user->forceFill([
+                'verification_code' => $code,
+                'verification_code_sent_at' => now(),
+            ])->save();
+        } catch (\Throwable $e) {
+            // Log::warning('No se pudo enviar el código de verificación: '.$e->getMessage());
+        }
+
+        return $user;
     }
 }

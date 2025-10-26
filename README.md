@@ -1,5 +1,58 @@
 # Sistema de Gestión Empresarial Sumaxia
 
+#### Temas de cada archvo
+
+- Instalación y configuración del entorno ( composer , npm , .env , key:generate ).
+- Configuración de base de datos y migraciones; compilación de assets y servidor.
+- Módulos principales: Dashboard, Facturación, Cotizaciones, Contabilidad, Nómina y Administración.
+- Flujo de verificación por código (YYMMDD), rutas /verify , reenvío y middleware.
+- Mantenimiento y verificación del sistema: página admin, auto-respaldo y scheduler.
+- Docker básico: comandos, recreación y acceso ( sumaxia.local / localhost ).
+- Estructura del proyecto y rutas principales (login, admin, FE/DIAN).
+
+.pasos
+
+- Guía rápida de arranque con Docker y verificación de servicios.
+- Credenciales de prueba (admin, user, soporte).
+- Acceso a phpMyAdmin y parámetros de conexión.
+- Diagnóstico: logs, laravel.log , comprobación HTTP.
+- Servicio de frontend (Vite) y acceso.
+- Reset del entorno (down -v, rebuild, migrate --seed).
+- Notas de permisos y arranque automatizado ( init-app.sh ).
+
+- Comandos de rebuild del stack.
+pasos_Win
+
+- Alias sumaxia.local en Windows (edición de hosts ).
+- Preparación del entorno .env.docker y arranque con Docker.
+- Acceso a la aplicación por alias y localhost .
+- Cambio rápido de proveedor/cuenta SMTP (Mailtrap Sandbox/Sending y Mailpit).
+- Verificación rápida de correo (Tinker) y manejo de límite 535 .
+- Diagnóstico (logs, laravel.log , puertos), servicio Vite y acceso.
+- Reset del entorno y rebuild completo (comandos PowerShell).
+- Consejos específicos de Windows (curl vs Invoke-WebRequest, mapeo de puertos).
+
+SETUP-HOSTS.md
+
+- Configuración de hosts en Windows y macOS/Linux para sumaxia.local .
+- Verificación: levantar contenedores y acceso por alias/localhost.
+- Troubleshooting DNS en Windows (flush DNS, limpiar cache del navegador, DoH).
+- Nota sobre SESSION_DOMAIN y error 419 usando localhost .
+- Servicios disponibles: app, phpMyAdmin, Mailpit, SMTP por defecto (Mailtrap), Vite.
+- Observaciones sobre puertos y respuesta de Nginx a ambos hosts.
+
+DOCKER.md
+
+- Resumen y comandos clave de Docker ( up -d --build , logs, migraciones).
+- Windows/macOS: recomendaciones WSL2 y uso de docker compose .
+- Estructura de archivos Docker: Dockerfile multi-stage (Node + PHP-FPM), Nginx/PHP-FPM, supervisord.
+- Inicialización MySQL ( init.sql ) y ejemplo completo de .env.docker .
+- Acceso a servicios, credenciales por defecto, comandos útiles (Laravel en Docker).
+- Backup y restauración; flujo de despliegue/pruebas en Linux.
+- Cambio de cuenta/proveedor SMTP (Mailtrap Sandbox/Email Sending y Mailpit).
+- Enviar código de verificación (Artisan): auth:send-verification con notas y troubleshooting.
+
+
 ## Descripción
 
 Sumaxia es un sistema integral de gestión empresarial desarrollado en Laravel que incluye módulos para facturación, cotizaciones, contabilidad, nómina y administración de usuarios. El sistema está diseñado para pequeñas y medianas empresas que necesitan una solución completa para gestionar sus operaciones financieras y administrativas.
