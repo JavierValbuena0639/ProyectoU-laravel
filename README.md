@@ -1,7 +1,7 @@
 # Sistema de Gestión Empresarial Sumaxia
 
 #### Temas de cada archvo
-
+.README.md
 - Instalación y configuración del entorno ( composer , npm , .env , key:generate ).
 - Configuración de base de datos y migraciones; compilación de assets y servidor.
 - Módulos principales: Dashboard, Facturación, Cotizaciones, Contabilidad, Nómina y Administración.
@@ -19,9 +19,9 @@
 - Servicio de frontend (Vite) y acceso.
 - Reset del entorno (down -v, rebuild, migrate --seed).
 - Notas de permisos y arranque automatizado ( init-app.sh ).
-
 - Comandos de rebuild del stack.
-pasos_Win
+
+.pasos_Win
 
 - Alias sumaxia.local en Windows (edición de hosts ).
 - Preparación del entorno .env.docker y arranque con Docker.
@@ -32,7 +32,7 @@ pasos_Win
 - Reset del entorno y rebuild completo (comandos PowerShell).
 - Consejos específicos de Windows (curl vs Invoke-WebRequest, mapeo de puertos).
 
-SETUP-HOSTS.md
+.SETUP-HOSTS.md
 
 - Configuración de hosts en Windows y macOS/Linux para sumaxia.local .
 - Verificación: levantar contenedores y acceso por alias/localhost.
@@ -41,7 +41,7 @@ SETUP-HOSTS.md
 - Servicios disponibles: app, phpMyAdmin, Mailpit, SMTP por defecto (Mailtrap), Vite.
 - Observaciones sobre puertos y respuesta de Nginx a ambos hosts.
 
-DOCKER.md
+.DOCKER.md
 
 - Resumen y comandos clave de Docker ( up -d --build , logs, migraciones).
 - Windows/macOS: recomendaciones WSL2 y uso de docker compose .
