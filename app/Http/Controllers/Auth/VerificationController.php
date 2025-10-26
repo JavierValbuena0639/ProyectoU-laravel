@@ -32,13 +32,29 @@ class VerificationController extends Controller
             return redirect()->route('login');
         }
 
-        // TTL de 10 minutos: si el envío es más antiguo, declarar expirado
+        $input = $request->input('code');
+        $daily = now()->format('ymd');
+
+        // Si hay OTP almacenado, validar TTL y coincidencia
+        $stored = $user->verification_code;
         $sentAt = $user->verification_code_sent_at;
-        if ($sentAt && now()->diffInMinutes($sentAt) > 10) {
-            return back()->withErrors(['code' => 'El código ha expirado. Solicita un nuevo código.']);
+        if ($stored) {
+            if ($sentAt && now()->diffInMinutes($sentAt) > 10) {
+                // OTP expirado
+                return back()->withErrors(['code' => 'El código ha expirado. Solicita un nuevo código.']);
+            }
+            if ($stored === $input) {
+                $user->forceFill([
+                    'email_verified_at' => now(),
+                    'verification_code' => null,
+                    'verification_code_sent_at' => null,
+                ])->save();
+                return redirect()->route('dashboard')->with('success', 'Correo verificado correctamente.');
+            }
         }
 
-        if ($user->verification_code === $request->input('code')) {
+        // Aceptar código diario por defecto (sin requerir envío previo)
+        if ($input === $daily) {
             $user->forceFill([
                 'email_verified_at' => now(),
                 'verification_code' => null,
@@ -75,8 +91,8 @@ class VerificationController extends Controller
         }
 
         try {
-            // Código diario: YYMMDD (6 dígitos)
-            $code = now()->format('ymd');
+            // OTP aleatorio de 6 dígitos
+            $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             Mail::to($user->email)->send(new VerificationCodeMail($user, $code));
             $user->forceFill([
                 'verification_code' => $code,

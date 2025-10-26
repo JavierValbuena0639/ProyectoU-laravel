@@ -62,11 +62,10 @@ class TenantDemoSeeder extends Seeder
             // Generar y enviar código de verificación
             try {
                 $userModel = User::find($userId);
-                $code = now()->format('ymd'); // código diario YYMMDD
-                Mail::to($userModel->email)->send(new VerificationCodeMail($userModel, $code));
+                // Desactivado: no enviar correo ni establecer código durante el seeding
                 $userModel->forceFill([
-                    'verification_code' => $code,
-                    'verification_code_sent_at' => now(),
+                    'verification_code' => null,
+                    'verification_code_sent_at' => null,
                     'email_verified_at' => null,
                 ])->save();
             } catch (\Throwable $e) {

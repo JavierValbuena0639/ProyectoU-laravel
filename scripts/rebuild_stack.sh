@@ -28,11 +28,15 @@ sleep 5
 echo "Checking container statuses..."
 docker compose ps
 
+echo "Waiting 10 seconds for services to stabilize..."
+sleep 10
+
 echo "Cleaning..."
 docker compose exec app php artisan config:clear && \
- docker compose exec app php artisan cache:clear && \
- docker compose exec app php artisan route:clear && \
- docker compose exec app php artisan view:clear
+docker compose exec app php artisan cache:clear && \
+docker compose exec app php artisan route:clear && \
+docker compose exec app php artisan view:clear
+
 
 echo "Migrations... "
 docker compose exec -T app php artisan migrate:fresh --force --seed

@@ -629,6 +629,28 @@ docker-compose exec app php artisan migrate --force
 ---
 
 Esta guía proporciona una configuración completa para desplegar Sumaxia en producción usando Docker en Linux con MySQL.
+## Verificación de acceso (YYMMDD y OTP)
+
+- Código diario `YYMMDD` como acceso por defecto: en `/verify` se acepta el código del día sin necesidad de haber enviado correo. Útil para demos y entornos internos.
+- OTP aleatorio por correo: registro, creación por admin y “Reenviar código” envían un OTP de 6 dígitos con TTL de 10 minutos y enfriamiento de 60 segundos para reenvíos.
+- Seeders: no envían correos ni fijan códigos; la verificación queda pendiente.
+
+### Comando para enviar OTP manualmente
+
+```bash
+# Enviar OTP por correo al usuario indicado
+docker compose exec app php artisan auth:send-verification admin@sumaxia.com
+```
+
+- Requisitos: tener SMTP configurado (Mailtrap/Mailpit) y contenedor `app` en ejecución.
+- Notas: el OTP expira en 10 minutos. Si usas Mailtrap Sandbox, recuerda los límites de envío; cambia de inbox/cuenta o usa Mailpit en local.
+- Logs: `docker compose logs -f app` y `docker compose exec app tail -n 200 storage/logs/laravel.log`.
+
+### Verificación rápida
+
+- Con código diario: inicia sesión → `/verify` → ingresa `YYMMDD` (por ejemplo, 251026 para 2025-10-26).
+- Con OTP enviado: usa “Reenviar código” en `/verify` y valida antes del TTL.
+
 ## Alias de dominio y sesión (sumaxia.local)
 
 - La app y Nginx están configurados para `sumaxia.local:8000`.
