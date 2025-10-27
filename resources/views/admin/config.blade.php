@@ -292,10 +292,13 @@
 
             <!-- Security Settings -->
             <div class="bg-white rounded-lg shadow">
-                <div class="px-6 py-4 border-b border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                     <h3 class="text-lg font-semibold text-gray-900">
                         <i class="fas fa-shield-alt mr-2 text-red-600"></i>Configuración de Seguridad
                     </h3>
+                    <a href="{{ route('admin.security.logs') }}" class="inline-flex items-center px-3 py-2 text-sm rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200">
+                        <i class="fas fa-clipboard-list mr-2"></i>Ver Logs de Seguridad
+                    </a>
                 </div>
                 <div class="p-6">
                     <form class="space-y-6">

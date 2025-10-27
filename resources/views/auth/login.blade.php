@@ -83,6 +83,7 @@
                             <i id="toggle_pw_icon" class="fas fa-eye"></i>
                         </button>
                     </div>
+                    <p class="mt-2 text-xs text-gray-500">Máximo 5 intentos fallidos; luego se bloquea por 15 minutos.</p>
                     @error('password')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror

@@ -29,11 +29,13 @@ class VerificationCodeMail extends Mailable
      */
     public function build(): self
     {
-        return $this->subject('Código de verificación')
+        $displayName = $this->user->name ?? $this->user->email;
+        return $this->subject(__('emails.verification.subject'))
             ->view('emails.verification-code')
             ->with([
                 'user' => $this->user,
                 'code' => $this->code,
+                'displayName' => $displayName,
             ]);
     }
 }

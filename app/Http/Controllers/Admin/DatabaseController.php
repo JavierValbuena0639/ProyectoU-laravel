@@ -56,7 +56,7 @@ class DatabaseController extends Controller
         // Conteos de usuarios (global si soporte, por dominio si no)
         $usersQuery = User::query();
         if (!$isSupport && $domain) {
-            $usersQuery->where('email', 'like', '%@' . $domain);
+            $usersQuery->where('email_domain', $domain);
         }
         $adminsCount = (clone $usersQuery)
             ->whereHas('role', function ($q) { $q->where('name', 'admin'); })
@@ -396,15 +396,15 @@ class DatabaseController extends Controller
                         case 'admin_user_accounts':
                             // Contar relaciones donde el usuario pertenece al dominio
                             $count = AdminUserAccount::whereHas('user', function($q) use ($domain){
-                                $q->where('email', 'like', '%@' . $domain);
+                                $q->where('email_domain', $domain);
                             })->count();
                             break;
                         case 'users':
-                            $count = User::where('email', 'like', '%@' . $domain)->count();
+                            $count = User::where('email_domain', $domain)->count();
                             break;
                         case 'invoices':
                             $count = Invoice::whereHas('user', function($q) use ($domain){
-                                $q->where('email', 'like', '%@' . $domain);
+                                $q->where('email_domain', $domain);
                             })->count();
                             break;
                         case 'transactions':

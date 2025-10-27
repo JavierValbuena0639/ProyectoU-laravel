@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Cache\RateLimiter;
+use Illuminate\Support\Str;
+use App\Models\Audit;
 
 class LoginController extends Controller
 {
@@ -34,8 +37,48 @@ class LoginController extends Controller
         $email = $request->input('email');
         $password = $request->input('password');
 
+        // Política de bloqueo tras intentos fallidos
+        /** @var RateLimiter $limiter */
+        $limiter = app(RateLimiter::class);
+        $key = 'login:'.Str::lower($email).'|'.$request->ip();
+        $maxAttempts = 5;       // máximo de intentos permitidos
+        $decaySeconds = 15 * 60; // ventana/bloqueo de 15 minutos
+
+        if ($limiter->tooManyAttempts($key, $maxAttempts)) {
+            $seconds = $limiter->availableIn($key);
+            try {
+                Audit::create([
+                    'user_id' => optional($user ?? null)->id,
+                    'event' => 'login_blocked',
+                    'auditable_type' => 'User',
+                    'auditable_id' => optional($user ?? null)->id,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => (string) $request->header('User-Agent'),
+                    'url' => $request->fullUrl(),
+                    'description' => 'Intento de inicio de sesión bloqueado por rate limit',
+                ]);
+            } catch (\Throwable $e) {}
+            throw ValidationException::withMessages([
+                'email' => ['Demasiados intentos fallidos. Intenta nuevamente en ' . $seconds . ' segundos.'],
+            ]);
+        }
+
         $user = User::where('email', $email)->first();
         if (!$user || !Hash::check($password, $user->password)) {
+            // Registrar intento fallido y aplicar bloqueo si corresponde
+            $limiter->hit($key, $decaySeconds);
+            try {
+                Audit::create([
+                    'user_id' => optional($user)->id,
+                    'event' => 'login_failed',
+                    'auditable_type' => 'User',
+                    'auditable_id' => optional($user)->id,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => (string) $request->header('User-Agent'),
+                    'url' => $request->fullUrl(),
+                    'description' => 'Credenciales inválidas para email: ' . Str::lower($email),
+                ]);
+            } catch (\Throwable $e) {}
             throw ValidationException::withMessages([
                 'email' => ['Las credenciales proporcionadas no coinciden con nuestros registros.'],
             ]);
@@ -56,6 +99,9 @@ class LoginController extends Controller
         }
 
         // Login normal (sin 2FA)
+        // Limpiar contador de intentos al autenticar correctamente
+        $limiter->clear($key);
+
         Auth::login($user, $remember);
         $request->session()->regenerate();
 
@@ -63,6 +109,20 @@ class LoginController extends Controller
         $user->update([
             'last_login' => now()
         ]);
+
+        // Auditoría: login exitoso
+        try {
+            Audit::create([
+                'user_id' => $user->id,
+                'event' => 'login_success',
+                'auditable_type' => 'User',
+                'auditable_id' => $user->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => (string) $request->header('User-Agent'),
+                'url' => $request->fullUrl(),
+                'description' => 'Inicio de sesión exitoso',
+            ]);
+        } catch (\Throwable $e) {}
 
         // Redirigir según el rol del usuario
         if ($user->isAdmin()) {

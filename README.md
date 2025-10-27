@@ -248,6 +248,7 @@ El sistema estará disponible en `http://127.0.0.1:8000`
   - `POST /admin/database/rollback` (revertir última migración)
   - `POST /admin/database/optimize` (optimización)
   - `POST /admin/database/cache/clear` (limpiar caches)
+  - Restauración desde respaldo por CLI: `php artisan db:restore <archivo.zip> [--keep]`
 
 - Verificación del sistema (admin o soporte):
   - `GET /admin/system/verify` muestra estado de:
@@ -273,6 +274,15 @@ El sistema estará disponible en `http://127.0.0.1:8000`
 - Se evita concurrencia entre procesos con un candado de caché temporal (15 minutos).
 - Se registra el evento en `storage/logs/audit.log`.
  - La verificación del sistema muestra el estado del primer arranque (completado o pendiente).
+
+#### Restaurar Base de Datos (CLI)
+- Usa el comando `db:restore` para cargar datos desde un respaldo `.zip` generado por `db:auto-backup`.
+- Sintaxis: `php artisan db:restore backup_YYYY-MM-DD_HHMM.zip`.
+- Opción `--keep`: conserva datos existentes y solo inserta los del respaldo (por defecto se truncan las tablas primero).
+- El comando desactiva/activa llaves foráneas según el motor (MySQL/SQLite/PostgreSQL), inserta por lotes y registra auditoría.
+- Ejemplo:
+  - `php artisan db:restore backup_2025-10-27_0200.zip` — restauración limpia (truncate/delete previo).
+  - `php artisan db:restore backup_2025-10-27_0200.zip --keep` — fusiona datos del respaldo con los actuales.
 
 ### Auditoría
 - Canal de logs `audit` en `storage/logs/audit.log`.
@@ -423,6 +433,15 @@ MAIL_FROM_ADDRESS="no-reply@sumaxia.com"
 MAIL_FROM_NAME="SumAxia"
 ```
 
+Modos comunes:
+- Mailtrap Sandbox (desarrollo): `MAIL_HOST=sandbox.smtp.mailtrap.io`, `MAIL_PORT=2525`, `MAIL_ENCRYPTION=null`.
+- Mailtrap Email Sending (staging/prod): `MAIL_HOST=smtp.mailtrap.io`, `MAIL_PORT=587`, `MAIL_ENCRYPTION=tls`. Respeta límites y reputación de envío.
+- Mailpit (local): `MAIL_HOST=mailpit`, `MAIL_PORT=1025`, `MAIL_ENCRYPTION=null`, `MAIL_USERNAME=` y `MAIL_PASSWORD=` vacíos.
+
+Notas:
+- Si cambias proveedor o credenciales, ejecuta `php artisan config:clear`.
+- Asegura `MAIL_FROM_ADDRESS` pertenezca al dominio configurado por tu proveedor para evitar bloqueos 535.
+
 ### Variables de Entorno FE (DIAN)
 Configura las credenciales y entorno de Facturación Electrónica en `.env`:
 ```env
@@ -452,6 +471,24 @@ Luego limpia configuración:
 ```bash
 php artisan config:clear
 ```
+
+Guía de `SameSite` y `secure`:
+- Desarrollo HTTP (127.0.0.1 / localhost):
+  - `SESSION_SECURE_COOKIE=false`
+  - `SESSION_SAME_SITE=lax` (por defecto)
+  - `SESSION_DOMAIN=null` (evita 419 cuando usas `localhost` o IP)
+- Producción HTTPS:
+  - `SESSION_SECURE_COOKIE=true`
+  - `SESSION_SAME_SITE=lax` o `strict` según tus necesidades; usa `none` solo si requieres cookies en contextos cross-site y SIEMPRE con HTTPS.
+  - `SESSION_DOMAIN=tu-dominio.com` (sin puerto). Si usas `sumaxia.local`, define `SESSION_DOMAIN=sumaxia.local`.
+
+Tras ajustar estas variables, limpia configuración con `php artisan config:clear`.
+
+Seeders de demo y guardas de entorno:
+- Variables:
+  - `DEMO_SEED_ENABLED=true|false` — desactiva seeders demo globalmente.
+  - `ALLOW_DEMO_SEED_IN_PROD=true|false` — permite ejecución explícita en producción (por defecto, bloqueado).
+- Los seeders `TenantDemoSeeder` y `CleanupRandomUsersSeeder` respetan estas banderas para evitar truncados/eliminaciones accidentales.
 
 ## Desarrollo
 

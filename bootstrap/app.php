@@ -19,9 +19,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'inactive' => \App\Http\Middleware\InactivityMiddleware::class,
             'lowercase' => \App\Http\Middleware\LowercaseInputMiddleware::class,
             'verified_code' => \App\Http\Middleware\EnsureEmailCodeVerified::class,
+            'metrics' => \App\Http\Middleware\MetricsMiddleware::class,
         ]);
         // Añadir middlewares al grupo 'web'
         $middleware->appendToGroup('web', [
+            \App\Http\Middleware\MetricsMiddleware::class,
             \App\Http\Middleware\LowercaseInputMiddleware::class,
             \App\Http\Middleware\LocaleMiddleware::class,
             \App\Http\Middleware\InactivityMiddleware::class,

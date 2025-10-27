@@ -49,7 +49,7 @@ class ReportsController extends Controller
         $prevStart = $prevEnd->copy()->subDays($diffDays - 1);
 
         $invoicesQuery = Invoice::whereHas('user', function($q) use ($domain){
-            $q->where('email', 'like', "%@{$domain}");
+            $q->where('email_domain', $domain);
         });
         $invoicesCount = (clone $invoicesQuery)
             ->whereBetween('invoice_date', [$start->toDateString(), $end->toDateString()])
@@ -75,7 +75,7 @@ class ReportsController extends Controller
 
         $accountingCount = Account::forDomain($domain)->count();
         $payrollCount = Payroll::whereHas('user', function($q) use ($domain){
-                $q->where('email', 'like', "%@{$domain}");
+                $q->where('email_domain', $domain);
             })
             ->whereBetween('payroll_period_start', [$start->toDateString(), $end->toDateString()])
             ->count();
@@ -83,7 +83,7 @@ class ReportsController extends Controller
 
         $recentAudits = Audit::with('user')
             ->whereHas('user', function($q) use ($domain) {
-                $q->where('email', 'like', '%@' . $domain);
+                $q->where('email_domain', $domain);
             })
             ->latest()
             ->take(20)

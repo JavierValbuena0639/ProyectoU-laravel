@@ -16,6 +16,15 @@ class TenantDemoSeeder extends Seeder
 {
     public function run(): void
     {
+        // Guardas de entorno para evitar truncados y datos demo no intencionados
+        if (app()->environment('production') && !filter_var(env('ALLOW_DEMO_SEED_IN_PROD', false), FILTER_VALIDATE_BOOLEAN)) {
+            // No ejecutar en producción a menos que se habilite explícitamente
+            return;
+        }
+        if (!filter_var(env('DEMO_SEED_ENABLED', true), FILTER_VALIDATE_BOOLEAN)) {
+            // Permite desactivar el seeding demo en cualquier entorno
+            return;
+        }
         // Limpieza de tablas demo (conservar usuarios para mantener fundador/admin)
         Schema::disableForeignKeyConstraints();
         DB::table('admin_user_accounts')->truncate();
