@@ -102,7 +102,13 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @php
-                            $invoices = \App\Models\Invoice::latest()->take(15)->get();
+                            $domain = auth()->user()->emailDomain();
+                            $invoices = \App\Models\Invoice::whereHas('user', function($q) use ($domain) {
+                                $q->where('email_domain', $domain);
+                            })
+                            ->latest()
+                            ->take(15)
+                            ->get();
                         @endphp
                         @foreach($invoices as $invoice)
                         <tr>
@@ -179,7 +185,8 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">{{ __('invoicing.summary.total_invoices') }}</p>
-                        <p class="text-2xl font-semibold text-gray-900">{{ \App\Models\Invoice::count() }}</p>
+                        @php $domain = $domain ?? auth()->user()->emailDomain(); @endphp
+                        <p class="text-2xl font-semibold text-gray-900">{{ \App\Models\Invoice::whereHas('user', function($q) use ($domain){ $q->where('email_domain', $domain); })->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -191,7 +198,7 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">{{ __('invoicing.summary.paid_invoices') }}</p>
-                        <p class="text-2xl font-semibold text-green-600">{{ \App\Models\Invoice::where('status', 'paid')->count() }}</p>
+                        <p class="text-2xl font-semibold text-green-600">{{ \App\Models\Invoice::where('status', 'paid')->whereHas('user', function($q) use ($domain){ $q->where('email_domain', $domain); })->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -203,7 +210,7 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">{{ __('invoicing.summary.pending') }}</p>
-                        <p class="text-2xl font-semibold text-yellow-600">{{ \App\Models\Invoice::where('status', 'pending')->count() }}</p>
+                        <p class="text-2xl font-semibold text-yellow-600">{{ \App\Models\Invoice::where('status', 'pending')->whereHas('user', function($q) use ($domain){ $q->where('email_domain', $domain); })->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -215,7 +222,7 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">{{ __('invoicing.summary.overdue') }}</p>
-                        <p class="text-2xl font-semibold text-red-600">{{ \App\Models\Invoice::where('status', 'overdue')->count() }}</p>
+                        <p class="text-2xl font-semibold text-red-600">{{ \App\Models\Invoice::where('status', 'overdue')->whereHas('user', function($q) use ($domain){ $q->where('email_domain', $domain); })->count() }}</p>
                     </div>
                 </div>
             </div>

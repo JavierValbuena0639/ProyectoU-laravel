@@ -109,7 +109,14 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @php
-                            $transactions = \App\Models\Transaction::with('account')->latest()->take(20)->get();
+                            $domain = auth()->user()->emailDomain();
+                            $transactions = \App\Models\Transaction::with('account')
+                                ->whereHas('account', function($q) use ($domain){
+                                    $q->where('service_domain', $domain);
+                                })
+                                ->latest()
+                                ->take(20)
+                                ->get();
                         @endphp
                         @foreach($transactions as $transaction)
                         <tr>
@@ -163,7 +170,8 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Total Transacciones</p>
-                        <p class="text-2xl font-semibold text-gray-900">{{ \App\Models\Transaction::count() }}</p>
+                        @php $domain = $domain ?? auth()->user()->emailDomain(); @endphp
+                        <p class="text-2xl font-semibold text-gray-900">{{ \App\Models\Transaction::whereHas('account', function($q) use ($domain){ $q->where('service_domain', $domain); })->count() }}</p>
                     </div>
                 </div>
             </div>

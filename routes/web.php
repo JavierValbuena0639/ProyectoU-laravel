@@ -62,6 +62,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/verify', [\App\Http\Controllers\Auth\VerificationController::class, 'show'])->name('auth.verify.show');
     Route::post('/verify', [\App\Http\Controllers\Auth\VerificationController::class, 'verify'])->name('auth.verify.submit');
     Route::post('/verify/resend', [\App\Http\Controllers\Auth\VerificationController::class, 'resend'])->name('auth.verify.resend');
+    Route::get('/verify/status', [\App\Http\Controllers\Auth\VerificationController::class, 'status'])->name('auth.verify.status');
 });
 
 Route::post('/logout', function () {
@@ -140,6 +141,12 @@ Route::middleware(['auth', 'inactive', 'verified_code'])->group(function () {
         })->name('reports');
         Route::get('/reports/export/{format}', [\App\Http\Controllers\Admin\ReportsController::class, 'export'])
             ->name('reports.export');
+
+        // Logs de seguridad (admin)
+        Route::get('/security-logs', [\App\Http\Controllers\Admin\SecurityLogsController::class, 'index'])
+            ->name('security.logs');
+        Route::get('/security-logs/export/csv', [\App\Http\Controllers\Admin\SecurityLogsController::class, 'exportCsv'])
+            ->name('security.logs.export.csv');
     });
 
     // Base de datos (compartido admin o soporte)

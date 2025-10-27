@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Models\User;
+use App\Observers\UserObserver;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Session;
@@ -63,6 +65,13 @@ class AppServiceProvider extends ServiceProvider
                     }
                 }
             }
+        }
+
+        // Registrar observador para mantener email_domain actualizado
+        try {
+            User::observe(UserObserver::class);
+        } catch (\Throwable $e) {
+            // evitar bloquear el boot en caso de error temprano de clases
         }
     }
 }

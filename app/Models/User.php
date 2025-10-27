@@ -171,7 +171,7 @@ class User extends Authenticatable
         $domain = $this->emailDomain();
         if (!$domain) return false;
 
-        $firstUserId = static::where('email', 'like', '%@' . $domain)
+        $firstUserId = static::where('email_domain', $domain)
             ->orderBy('id', 'asc')
             ->value('id');
 
@@ -187,7 +187,7 @@ class User extends Authenticatable
         $domain = $current ? $current->emailDomain() : null;
         if (!$domain) return null;
 
-        return static::where('email', 'like', '%@' . $domain)
+        return static::where('email_domain', $domain)
             ->orderBy('id', 'asc')
             ->first();
     }

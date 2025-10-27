@@ -148,7 +148,7 @@
                         $domain = Auth::user()->emailDomain();
                         $recentAudits = \App\Models\Audit::with('user')
                             ->whereHas('user', function($q) use ($domain) {
-                                $q->where('email', 'like', '%@' . $domain);
+                                $q->where('email_domain', $domain);
                             })
                             ->latest()
                             ->take(5)

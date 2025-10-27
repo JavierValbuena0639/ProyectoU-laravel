@@ -59,6 +59,9 @@
                         class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         placeholder="••••••••"
                     >
+                    <p class="mt-2 text-xs text-gray-500">
+                        Requisitos: mínimo 8 caracteres, letras mayúsculas y minúsculas, números y símbolos. No debe ser una contraseña comprometida.
+                    </p>
                     @error('password')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror

@@ -22,12 +22,12 @@
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-gray-700">{{ Auth::user()->name }}</span>
                     <a href="{{ route('admin.dashboard') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
-                        <i class="fas fa-home mr-1"></i>Admin Dashboard
+                        <i class="fas fa-home mr-1"></i>{{ __('config.admin_dashboard') }}
                     </a>
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
                         <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm">
-                            <i class="fas fa-sign-out-alt mr-1"></i>Cerrar Sesión
+                            <i class="fas fa-sign-out-alt mr-1"></i>{{ __('config.logout') }}
                         </button>
                     </form>
                 </div>
@@ -98,7 +98,7 @@
 
             // Métricas por dominio y período
             $invoicesQuery = \App\Models\Invoice::whereHas('user', function($q) use ($domain){
-                $q->where('email', 'like', "%@{$domain}");
+                $q->where('email_domain', $domain);
             });
             $invoicesCount = (clone $invoicesQuery)->whereBetween('invoice_date', [$start->toDateString(), $end->toDateString()])->count();
             $revenueSum = (clone $invoicesQuery)->whereBetween('invoice_date', [$start->toDateString(), $end->toDateString()])->sum('total_amount');
@@ -119,7 +119,7 @@
             $accountingCount = \App\Models\Account::forDomain($domain)->count();
             $invoicingCount = $invoicesCount;
             $payrollCount = \App\Models\Payroll::whereHas('user', function($q) use ($domain){
-                    $q->where('email', 'like', "%@{$domain}");
+                    $q->where('email_domain', $domain);
                 })
                 ->whereBetween('payroll_period_start', [$start->toDateString(), $end->toDateString()])
                 ->count();
@@ -178,8 +178,8 @@
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-500">{{ __('admin.reports_active_users') }}</p>
                         @php
-                            $activeUsers = \App\Models\User::where('active', true)
-                                ->where('email', 'like', "%@{$domain}")
+                        $activeUsers = \App\Models\User::where('active', true)
+                                ->where('email_domain', $domain)
                                 ->count();
                         @endphp
                         <p class="text-2xl font-bold text-gray-900">{{ $activeUsers }}</p>
@@ -329,7 +329,7 @@
                         $domain = $admin ? $admin->emailDomain() : '';
                         $recentAudits = \App\Models\Audit::with('user')
                             ->whereHas('user', function($q) use ($domain) {
-                                $q->where('email', 'like', '%@' . $domain);
+                                $q->where('email_domain', $domain);
                             })
                             ->latest()
                             ->take(5)

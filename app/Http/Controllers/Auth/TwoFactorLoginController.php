@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use App\Models\User;
 use App\Support\Totp;
+use App\Models\Audit;
 
 class TwoFactorLoginController extends Controller
 {
@@ -69,6 +70,20 @@ class TwoFactorLoginController extends Controller
         Auth::login($user, $remember);
         $request->session()->regenerate();
         $user->update(['last_login' => now()]);
+
+        // Auditoría: verificación 2FA exitosa
+        try {
+            Audit::create([
+                'user_id' => $user->id,
+                'event' => 'twofa_success',
+                'auditable_type' => 'User',
+                'auditable_id' => $user->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => (string) $request->header('User-Agent'),
+                'url' => $request->fullUrl(),
+                'description' => 'Verificación de segundo factor exitosa',
+            ]);
+        } catch (\Throwable $e) {}
 
         if ($user->isAdmin()) {
             return redirect()->intended('/admin/dashboard');

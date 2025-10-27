@@ -140,9 +140,10 @@
                 </div>
                 
                 <div class="mt-4 pt-4 border-t border-gray-200">
+                    @php $domain = auth()->user()->emailDomain(); @endphp
                     <p class="text-sm text-gray-500">
                         <i class="fas fa-users mr-1"></i>
-                        {{ \App\Models\User::where('role_id', 1)->count() }} usuarios asignados
+                        {{ \App\Models\User::where('role_id', 1)->where('email_domain', $domain)->count() }} usuarios asignados
                     </p>
                 </div>
             </div>
@@ -191,7 +192,7 @@
                 <div class="mt-4 pt-4 border-t border-gray-200">
                     <p class="text-sm text-gray-500">
                         <i class="fas fa-users mr-1"></i>
-                        {{ \App\Models\User::where('role_id', 2)->count() }} usuarios asignados
+                        {{ \App\Models\User::where('role_id', 2)->where('email_domain', $domain)->count() }} usuarios asignados
                     </p>
                 </div>
             </div>
@@ -240,7 +241,7 @@
                 <div class="mt-4 pt-4 border-t border-gray-200">
                     <p class="text-sm text-gray-500">
                         <i class="fas fa-users mr-1"></i>
-                        {{ \App\Models\User::where('role_id', 3)->count() }} usuarios asignados
+                        {{ \App\Models\User::where('role_id', 3)->where('email_domain', $domain)->count() }} usuarios asignados
                     </p>
                 </div>
             </div>

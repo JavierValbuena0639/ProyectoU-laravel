@@ -10,6 +10,7 @@ use Illuminate\Validation\Rules\Password;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\VerificationCodeMail;
 use App\Rules\NotPublicEmailDomain;
+use App\Models\Audit;
 
 class UserController extends Controller
 {
@@ -25,7 +26,7 @@ class UserController extends Controller
         // Usuarios del mismo dominio (incluye admin)
         $users = User::with('role')
             ->where(function($q) use ($domain) {
-                $q->where('email', 'like', '%@' . $domain);
+                $q->where('email_domain', $domain);
             })
             ->get();
 
@@ -155,6 +156,8 @@ class UserController extends Controller
             }
         }
 
+        $oldRoleId = $user->role_id;
+        $oldRoleName = optional($user->role)->name;
         $user->name = $validated['name'];
         $user->email = $validated['email'];
         $user->role_id = $validated['role_id'];
@@ -165,6 +168,31 @@ class UserController extends Controller
         }
 
         $user->save();
+
+        // Auditoría: cambio de rol
+        if ((int)$oldRoleId !== (int)$user->role_id) {
+            try {
+                $newRoleName = optional($user->role)->name;
+                Audit::create([
+                    'user_id' => auth()->id(), // actor (admin)
+                    'event' => 'role_changed',
+                    'auditable_type' => 'User',
+                    'auditable_id' => $user->id,
+                    'old_values' => [
+                        'role_id' => $oldRoleId,
+                        'role_name' => $oldRoleName,
+                    ],
+                    'new_values' => [
+                        'role_id' => $user->role_id,
+                        'role_name' => $newRoleName,
+                    ],
+                    'ip_address' => $request->ip(),
+                    'user_agent' => (string) $request->header('User-Agent'),
+                    'url' => $request->fullUrl(),
+                    'description' => 'Cambio de rol de ' . ($oldRoleName ?? 'N/A') . ' a ' . ($newRoleName ?? 'N/A') . ' para usuario ID ' . $user->id,
+                ]);
+            } catch (\Throwable $e) {}
+        }
 
         return redirect()->route('admin.users')->with('success', 'Usuario actualizado exitosamente');
     }

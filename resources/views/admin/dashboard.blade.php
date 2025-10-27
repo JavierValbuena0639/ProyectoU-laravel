@@ -146,7 +146,7 @@
                         <p class="text-sm font-medium text-gray-600">{{ __('admin.stats_total_users') }}</p>
                         @php
                             // Usuarios del mismo dominio
-                            $totalUsers = \App\Models\User::where('email', 'like', "%@{$domain}")->count();
+                            $totalUsers = \App\Models\User::where('email_domain', $domain)->count();
                         @endphp
                         <p class="text-2xl font-semibold text-gray-900">{{ $totalUsers }}</p>
                     </div>
@@ -161,7 +161,7 @@
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">{{ __('admin.stats_invoices') }}</p>
                         
-                        <p class="text-2xl font-semibold text-gray-900">{{ \App\Models\Invoice::whereHas('user', function($q) use ($domain){ $q->where('email', 'like', "%@{$domain}"); })->count() }}</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{ \App\Models\Invoice::whereHas('user', function($q) use ($domain){ $q->where('email_domain', $domain); })->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -187,7 +187,7 @@
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">{{ __('admin.stats_audits') }}</p>
                         
-                        <p class="text-2xl font-semibold text-gray-900">{{ \App\Models\Audit::whereHas('user', function($q) use ($domain){ $q->where('email', 'like', "%@{$domain}"); })->count() }}</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{ \App\Models\Audit::whereHas('user', function($q) use ($domain){ $q->where('email_domain', $domain); })->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -205,7 +205,7 @@
                         $domain = $admin ? $admin->emailDomain() : '';
                         $recentAudits = \App\Models\Audit::with('user')
                             ->whereHas('user', function($q) use ($domain) {
-                                $q->where('email', 'like', '%@' . $domain);
+                                $q->where('email_domain', $domain);
                             })
                             ->latest()
                             ->take(10)

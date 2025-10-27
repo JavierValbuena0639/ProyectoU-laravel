@@ -69,7 +69,7 @@ class SettingsController extends Controller
         }
 
         DB::transaction(function () use ($domain) {
-            User::where('email', 'like', '%@' . $domain)->update(['active' => false]);
+            User::where('email_domain', $domain)->update(['active' => false]);
             Account::forDomain($domain)->update(['active' => false]);
         });
 
