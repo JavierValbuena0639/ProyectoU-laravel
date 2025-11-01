@@ -24,7 +24,16 @@ class Invoice extends Model
         'payment_terms',
         'status',
         'observations',
-        'details'
+        'details',
+        // FE fields
+        'fe_status',
+        'fe_cufe',
+        'fe_uuid',
+        'fe_xml_path',
+        'fe_request_path',
+        'fe_response_path',
+        'fe_response_code',
+        'fe_response_message',
     ];
 
     protected $casts = [

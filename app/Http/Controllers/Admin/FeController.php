@@ -88,6 +88,33 @@ class FeController extends Controller
         ]);
 
         try {
+            // Validaciones de resolución (rango y fechas)
+            $resolution = FeResolution::where('active', true)->orderByDesc('id')->first();
+            if (!$resolution) {
+                return redirect()->route('invoicing.invoices')
+                    ->withErrors(['dian' => 'No hay una resolución DIAN activa configurada.']);
+            }
+
+            $today = now()->toDateString();
+            if ($today < $resolution->start_date->toDateString() || $today > $resolution->end_date->toDateString()) {
+                return redirect()->route('invoicing.invoices')
+                    ->withErrors(['dian' => 'La resolución DIAN no está vigente para la fecha actual.']);
+            }
+
+            // Extraer número consecutivo de la factura (solo dígitos)
+            $numberDigits = preg_replace('/\D/', '', (string) $invoice->invoice_number);
+            $invoiceConsecutive = (int) ($numberDigits ?: 0);
+            if ($invoiceConsecutive < $resolution->number_from || $invoiceConsecutive > $resolution->number_to) {
+                return redirect()->route('invoicing.invoices')
+                    ->withErrors(['dian' => 'El número de la factura está fuera del rango autorizado por la resolución.']);
+            }
+
+            // Alerta por límite cercano (últimos 10 números de la resolución)
+            $remaining = (int) ($resolution->number_to - $invoiceConsecutive);
+            if ($remaining >= 0 && $remaining <= 10) {
+                session()->flash('warning', "Atención: sólo quedan {$remaining} números disponibles en esta resolución DIAN.");
+            }
+
             $result = $service->send($invoice);
 
             // Auditoría básica
@@ -112,6 +139,41 @@ class FeController extends Controller
             } catch (\Throwable $logErr) {}
 
             return redirect()->route('invoicing.invoices')->withErrors(['dian' => __('invoicing.sent_to_dian_error')]);
+        }
+    }
+
+    /**
+     * Ejecutar prueba de habilitación (sandbox) y volver a la configuración.
+     */
+    public function test(Request $request)
+    {
+        $service = new FeDianService([
+            'software_id' => config('fe.software_id'),
+            'software_pin' => config('fe.software_pin'),
+            'cert_path' => config('fe.cert_path'),
+            'cert_password' => config('fe.cert_password'),
+            'environment' => config('fe.environment'),
+        ]);
+
+        try {
+            $result = $service->habilitationTest();
+            try {
+                Log::channel('audit')->info('DIAN habilitation test success', [
+                    'user_id' => optional(Auth::user())->id,
+                    'result' => $result,
+                ]);
+            } catch (\Throwable $e) {}
+
+            return redirect()->route('admin.fe.config')
+                ->with('success', 'Prueba de habilitación ejecutada en entorno de pruebas.');
+        } catch (\Throwable $e) {
+            try {
+                Log::error('DIAN habilitation test failed', [
+                    'error' => $e->getMessage(),
+                ]);
+            } catch (\Throwable $logErr) {}
+            return redirect()->route('admin.fe.config')
+                ->withErrors(['dian' => 'Error al ejecutar la prueba de habilitación.']);
         }
     }
 }
