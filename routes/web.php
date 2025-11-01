@@ -134,6 +134,8 @@ Route::middleware(['auth', 'inactive', 'verified_code'])->group(function () {
         Route::post('/fe/config/save', [FeController::class, 'save'])->name('fe.config.save');
         // Envío de facturas a DIAN (solo admin)
         Route::post('/fe/send/{invoice}', [FeController::class, 'sendInvoice'])->name('fe.invoice.send');
+        // Prueba de habilitación DIAN (sandbox)
+        Route::post('/fe/test', [FeController::class, 'test'])->name('fe.test');
         
         // Rutas para reportes
         Route::get('/reports', function () {

@@ -44,6 +44,16 @@
                 {{ session('success') }}
             </div>
         @endif
+        @if($errors->any())
+            <div class="mb-6 p-4 bg-red-100 text-red-800 rounded">
+                {{ $errors->first() }}
+            </div>
+        @endif
+        @if(session('warning'))
+            <div class="mb-6 p-4 bg-yellow-100 text-yellow-800 rounded">
+                {{ session('warning') }}
+            </div>
+        @endif
 
         <!-- Software credentials (read-only from config) -->
         <div class="bg-white rounded-lg shadow p-6 mb-8">
@@ -125,6 +135,12 @@
                     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                         <i class="fas fa-save mr-2"></i>{{ __('admin.fe_save_button') }}
                     </button>
+                    <form method="POST" action="{{ route('admin.fe.test') }}" class="inline ml-3">
+                        @csrf
+                        <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                            <i class="fas fa-vial mr-2"></i> Probar habilitación (sandbox)
+                        </button>
+                    </form>
                 </div>
             </form>
         </div>
