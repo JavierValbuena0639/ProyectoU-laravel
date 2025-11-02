@@ -16,12 +16,22 @@ class SupportMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
+<<<<<<< Updated upstream
+=======
+        // Verificar si el usuario está autenticado
+>>>>>>> Stashed changes
         if (!Auth::check()) {
             return redirect()->route('login');
         }
 
+<<<<<<< Updated upstream
         if (!Auth::user()->isSupport()) {
             abort(403, 'Acceso restringido a soporte interno.');
+=======
+        // Verificar si el usuario es soporte interno
+        if (!Auth::user()->isSupport()) {
+            abort(403, 'No tienes permisos para acceder a esta sección.');
+>>>>>>> Stashed changes
         }
 
         return $next($request);
