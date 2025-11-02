@@ -6,6 +6,7 @@
     <title>Gestión de Impuestos - SumAxia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="{{ asset('icons/calculator.svg') }}" type="image/svg+xml">
 </head>
 <body class="bg-gray-50">
     <!-- Header -->
@@ -19,6 +20,13 @@
                 
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-gray-700">{{ Auth::user()->name }}</span>
+                    @php $currentLocale = app()->getLocale(); @endphp
+                    <div class="flex items-center space-x-2">
+                        <a href="{{ route('locale.switch', ['lang' => 'es']) }}" aria-label="Español" title="Español"
+                           class="px-2 py-1 rounded border {{ $currentLocale === 'es' ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-700' }} hover:border-blue-500 hover:text-blue-600">🇪🇸</a>
+                        <a href="{{ route('locale.switch', ['lang' => 'en']) }}" aria-label="English" title="English"
+                           class="px-2 py-1 rounded border {{ $currentLocale === 'en' ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-700' }} hover:border-blue-500 hover:text-blue-600">🇺🇸</a>
+                    </div>
                     <a href="{{ route('dashboard') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
                         <i class="fas fa-home mr-1"></i>Dashboard
                     </a>
@@ -259,7 +267,7 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Total Impuestos</p>
-                        <p class="text-2xl font-semibold text-red-600">${{ number_format(array_sum(array_column($declarations, 'tax')), 0) }}</p>
+                        <p class="text-2xl font-semibold text-red-600">@money(array_sum(array_column($declarations, 'tax')))</p>
                     </div>
                 </div>
             </div>

@@ -11,7 +11,7 @@ class Invoice extends Model
     protected $fillable = [
         'invoice_number',
         'invoice_type',
-        'issue_date',
+        'invoice_date',
         'due_date',
         'supplier_id',
         'user_id',
@@ -24,11 +24,20 @@ class Invoice extends Model
         'payment_terms',
         'status',
         'observations',
-        'details'
+        'details',
+        // FE fields
+        'fe_status',
+        'fe_cufe',
+        'fe_uuid',
+        'fe_xml_path',
+        'fe_request_path',
+        'fe_response_path',
+        'fe_response_code',
+        'fe_response_message',
     ];
 
     protected $casts = [
-        'issue_date' => 'date',
+        'invoice_date' => 'date',
         'due_date' => 'date',
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',

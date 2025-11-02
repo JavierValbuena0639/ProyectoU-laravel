@@ -6,6 +6,7 @@
     <title>Nueva Cuenta - SumAxia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ asset('icons/calculator.svg') }}" type="image/svg+xml">
 </head>
 <body class="bg-gray-50">
     <!-- Header -->
@@ -64,8 +65,9 @@
                 <p class="text-sm text-gray-600 mt-1">Complete la información para crear una nueva cuenta en el catálogo contable</p>
             </div>
             
-            <form method="POST" action="{{ route('accounting.accounts.store') }}" class="p-6">
+            <form id="accountForm" method="POST" action="{{ route('accounting.accounts.store') }}" class="p-6">
                 @csrf
+                <input type="hidden" name="confirm_domain" id="confirm_domain" value="">
                 
                 <!-- Basic Information -->
                 <div class="mb-8">
@@ -226,7 +228,7 @@
                                 <option value="1">1 - Cuenta Principal</option>
                                 <option value="2">2 - Subcuenta</option>
                                 <option value="3">3 - Sub-subcuenta</option>
-                                <option value="4">4 - Cuenta de Detalle</option>
+                                <option value="4" selected>4 - Cuenta de Detalle</option>
                             </select>
                         </div>
                     </div>
@@ -238,7 +240,7 @@
                        class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <i class="fas fa-times mr-2"></i>Cancelar
                     </a>
-                    <button type="submit" 
+                    <button type="button" id="submitBtn"
                             class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <i class="fas fa-save mr-2"></i>Crear Cuenta
                     </button>
@@ -248,6 +250,19 @@
     </div>
 
     <script>
+        // Confirmación de dominio antes de enviar
+        const submitBtn = document.getElementById('submitBtn');
+        const form = document.getElementById('accountForm');
+        const confirmDomainInput = document.getElementById('confirm_domain');
+        submitBtn.addEventListener('click', function() {
+            const domain = '{{ Auth::user()->emailDomain() }}';
+            const msg = `Confirmar dominio de servicio: ${domain}?`;
+            if (window.confirm(msg)) {
+                confirmDomainInput.value = domain;
+                form.submit();
+            }
+        });
+
         // Filter subtypes based on account type selection
         document.getElementById('account_type').addEventListener('change', function() {
             const selectedType = this.value;

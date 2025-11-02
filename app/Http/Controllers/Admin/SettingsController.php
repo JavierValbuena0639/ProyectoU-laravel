@@ -1,0 +1,108 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use App\Models\User;
+use App\Models\Account;
+use Carbon\Carbon;
+
+class SettingsController extends Controller
+{
+    public function save(Request $request)
+    {
+        $request->validate([
+            'timezone' => 'required|string',
+            'date_format' => 'required|string',
+            'language' => 'required|in:es,en',
+        ]);
+
+        $language = $request->input('language');
+        $fakerLocale = $language === 'en' ? 'en_US' : 'es_CO';
+
+        $data = [
+            'APP_TIMEZONE' => $request->input('timezone'),
+            'APP_LOCALE' => $language,
+            'APP_FAKER_LOCALE' => $fakerLocale,
+            'APP_DATE_FORMAT' => $request->input('date_format'),
+        ];
+
+        $this->writeEnv($data);
+
+        // Aplicar en runtime para que el cambio de idioma/fecha se refleje inmediatamente
+        App::setLocale($language);
+        Carbon::setLocale($language);
+        Session::put('app_locale', $language);
+        $tz = (string) $request->input('timezone');
+        if (!empty($tz)) {
+            @date_default_timezone_set($tz);
+            Config::set('app.timezone', $tz);
+        }
+        $df = (string) $request->input('date_format');
+        if (!empty($df)) {
+            Config::set('app.date_format', $df);
+        }
+
+        return back()->with('success', __('Configuración del sistema actualizada correctamente'));
+    }
+
+    public function unsubscribe(Request $request)
+    {
+        $request->validate([
+            'confirm_domain' => ['nullable', 'string'],
+            'confirm_word' => ['required', 'in:DELETED'],
+        ]);
+
+        $admin = $request->user();
+        $domain = $admin && method_exists($admin, 'emailDomain') ? $admin->emailDomain() : null;
+        if (!$domain) {
+            return back()->withErrors(['domain' => 'No se pudo determinar el dominio del servicio.']);
+        }
+        if (!empty($request->input('confirm_domain')) && $request->input('confirm_domain') !== $domain) {
+            return back()->withErrors(['confirm_domain' => 'El dominio confirmado no coincide con su dominio de servicio.']);
+        }
+
+        DB::transaction(function () use ($domain) {
+            User::where('email_domain', $domain)->update(['active' => false]);
+            Account::forDomain($domain)->update(['active' => false]);
+        });
+
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect()->route('login')->with('status', 'Servicio dado de baja para el dominio ' . $domain . '. Se cerró la sesión.');
+    }
+
+    private function writeEnv(array $data): void
+    {
+        $envPath = base_path('.env');
+        $env = file_exists($envPath) ? file_get_contents($envPath) : '';
+
+        foreach ($data as $key => $value) {
+            $pattern = "/^" . preg_quote($key, '/') . "=.*/m";
+            $replacement = $key . '=' . $this->escapeEnvValue($value);
+            if (preg_match($pattern, $env)) {
+                $env = preg_replace($pattern, $replacement, $env);
+            } else {
+                $env .= "\n" . $replacement;
+            }
+        }
+
+        file_put_contents($envPath, $env);
+    }
+
+    private function escapeEnvValue($value): string
+    {
+        $value = (string)($value ?? '');
+        if (str_contains($value, ' ') || str_contains($value, '#')) {
+            return '"' . addslashes($value) . '"';
+        }
+        return $value;
+    }
+}

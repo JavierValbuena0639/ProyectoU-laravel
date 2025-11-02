@@ -2,14 +2,21 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\DatabaseController as AdminDatabaseController;
+use App\Http\Controllers\Admin\SystemController as AdminSystemController;
+use App\Http\Controllers\Admin\FeController;
+use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\PasswordResetController;
 
-// Ruta principal - redirige al dashboard si está autenticado, sino al login
+// Ruta principal - muestra panel de bienvenida y redirige a /login en 30s
 Route::get('/', function () {
-    if (Auth::check()) {
-        return redirect()->route('dashboard');
-    }
-    return redirect()->route('login');
+    return view('welcome');
 });
+
+// Cambio de idioma accesible para cualquier usuario (invitado o autenticado)
+Route::get('/locale/{lang}', [\App\Http\Controllers\LocaleController::class, 'switch'])->name('locale.switch');
 
 // Rutas de autenticación
 Route::get('/login', function () {
@@ -18,39 +25,243 @@ Route::get('/login', function () {
 
 Route::post('/login', [App\Http\Controllers\Auth\LoginController::class, 'login']);
 
+// Desafío 2FA tras credenciales válidas
+Route::get('/two-factor', [App\Http\Controllers\Auth\TwoFactorLoginController::class, 'show'])
+    ->name('auth.twofa.show')
+    ->middleware('guest');
+Route::post('/two-factor', [App\Http\Controllers\Auth\TwoFactorLoginController::class, 'verify'])
+    ->name('auth.twofa.submit')
+    ->middleware('guest');
+
+// Envío de enlace de recuperación para el administrador
+Route::post('/password/forgot-admin', [LoginController::class, 'sendAdminResetLink'])
+    ->name('password.forgot_admin')
+    ->middleware('guest');
+
+// Envío de enlace de recuperación para cualquier email (usuario/admin)
+Route::post('/password/email', [LoginController::class, 'sendResetLink'])
+    ->name('password.email')
+    ->middleware('guest');
+
+// Restablecimiento de contraseña (formulario y acción)
+Route::get('/password/reset/{token}', [PasswordResetController::class, 'showResetForm'])
+    ->name('password.reset')
+    ->middleware('guest');
+Route::post('/password/reset', [PasswordResetController::class, 'reset'])
+    ->name('password.update')
+    ->middleware('guest');
+
+// Registro de administradores (acceso invitado)
+Route::middleware('guest')->group(function () {
+    Route::get('/register', [RegisterController::class, 'show'])->name('register');
+    Route::post('/register', [RegisterController::class, 'store']);
+});
+
+// Verificación por código (usuario autenticado, sin exigir verificación previa)
+Route::middleware('auth')->group(function () {
+    Route::get('/verify', [\App\Http\Controllers\Auth\VerificationController::class, 'show'])->name('auth.verify.show');
+    Route::post('/verify', [\App\Http\Controllers\Auth\VerificationController::class, 'verify'])->name('auth.verify.submit');
+    Route::post('/verify/resend', [\App\Http\Controllers\Auth\VerificationController::class, 'resend'])->name('auth.verify.resend');
+    Route::get('/verify/status', [\App\Http\Controllers\Auth\VerificationController::class, 'status'])->name('auth.verify.status');
+});
+
 Route::post('/logout', function () {
     Auth::logout();
     return redirect()->route('login');
 })->name('logout');
 
 // Rutas protegidas
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'inactive', 'verified_code'])->group(function () {
     Route::get('/dashboard', function () {
+        $user = Auth::user();
+        if ($user && method_exists($user, 'isAdmin') && $user->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
+        if ($user && method_exists($user, 'isSupport') && $user->isSupport()) {
+            return redirect()->route('admin.database');
+        }
         return view('dashboard');
     })->name('dashboard');
+
+    // Cambio de idioma: usa la ruta global 'locale.switch'
     
     // Rutas de administración (solo admin)
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', function () {
             return view('admin.dashboard');
         })->name('dashboard');
+
+        // Cambio de idioma en sección admin: utiliza la ruta global 'locale.switch'
+
+        // Gestión de usuarios (controlador)
+        Route::get('/users', [AdminUserController::class, 'index'])->name('users');
+        Route::get('/users/create', [AdminUserController::class, 'create'])->name('users.create');
+        Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+        Route::post('/users/{user}/deactivate', [AdminUserController::class, 'deactivate'])->name('users.deactivate');
+        Route::post('/users/{user}/resend-code', [AdminUserController::class, 'resendVerificationCode'])->name('users.resend_code');
+        // 2FA para usuarios (admin)
+        Route::get('/users/{user}/2fa', [\App\Http\Controllers\Admin\TwoFactorController::class, 'show'])->name('users.2fa');
+        Route::post('/users/{user}/2fa/verify', [\App\Http\Controllers\Admin\TwoFactorController::class, 'verify'])->name('users.2fa.verify');
+        Route::post('/users/{user}/2fa/disable', [\App\Http\Controllers\Admin\TwoFactorController::class, 'disable'])->name('users.2fa.disable');
         
-        Route::get('/users', function () {
-            return view('admin.users');
-        })->name('users');
+        // Rutas para gestión de roles
+        Route::get('/roles', function () {
+            return view('admin.roles');
+        })->name('roles');
+        
+        Route::get('/roles/create', function () {
+            return view('admin.roles-create');
+        })->name('roles.create');
+        
+        Route::post('/roles', function () {
+            // Lógica para crear rol
+            return redirect()->route('admin.roles')->with('success', 'Rol creado exitosamente');
+        })->name('roles.store');
+        
+        // Rutas para configuración
+        Route::get('/config', function () {
+            return view('admin.config');
+        })->name('config');
+        Route::post('/config/save', [\App\Http\Controllers\Admin\SettingsController::class, 'save'])->name('config.save');
+        Route::post('/config/unsubscribe', [\App\Http\Controllers\Admin\SettingsController::class, 'unsubscribe'])->name('config.unsubscribe');
+
+        // Base de datos: movido fuera del grupo admin para permitir acceso a soporte
+
+        // Facturación Electrónica (DIAN) - Configuración (solo admin)
+        Route::get('/fe/config', [FeController::class, 'index'])->name('fe.config');
+        Route::post('/fe/config/save', [FeController::class, 'save'])->name('fe.config.save');
+        // Envío de facturas a DIAN (solo admin)
+        Route::post('/fe/send/{invoice}', [FeController::class, 'sendInvoice'])->name('fe.invoice.send');
+        // Prueba de habilitación DIAN (sandbox)
+        Route::post('/fe/test', [FeController::class, 'test'])->name('fe.test');
+        
+        // Rutas para reportes
+        Route::get('/reports', function () {
+            return view('admin.reports');
+        })->name('reports');
+        Route::get('/reports/export/{format}', [\App\Http\Controllers\Admin\ReportsController::class, 'export'])
+            ->name('reports.export');
+
+        // Logs de seguridad (admin)
+        Route::get('/security-logs', [\App\Http\Controllers\Admin\SecurityLogsController::class, 'index'])
+            ->name('security.logs');
+        Route::get('/security-logs/export/csv', [\App\Http\Controllers\Admin\SecurityLogsController::class, 'exportCsv'])
+            ->name('security.logs.export.csv');
+    });
+
+    // Base de datos (compartido admin o soporte)
+    Route::middleware(['admin_or_support'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/database', [AdminDatabaseController::class, 'index'])->name('database');
+        Route::get('/system/verify', [AdminSystemController::class, 'verify'])->name('system.verify');
+    });
+
+    // Exportación de reportes accesible para cualquier usuario autenticado (no admin)
+    Route::get('/reports/export/{format}', [\App\Http\Controllers\Admin\ReportsController::class, 'export'])
+        ->name('reports.export');
+
+    // Eliminación de reportes recientes (almacenados en sesión)
+    Route::post('/reports/delete/{id}', [\App\Http\Controllers\Admin\ReportsController::class, 'delete'])
+        ->name('reports.delete');
+
+    // Acciones de BD solo para soporte interno
+    Route::middleware(['support'])->prefix('admin')->name('admin.')->group(function () {
+        Route::post('/database/test', [AdminDatabaseController::class, 'testConnection'])->name('database.test');
+        Route::post('/database/save', [AdminDatabaseController::class, 'saveConnection'])->name('database.save');
+        // Respaldos
+        Route::post('/database/backups/create', [AdminDatabaseController::class, 'createBackup'])->name('database.backups.create');
+        Route::get('/database/backups/download/{file}', [AdminDatabaseController::class, 'downloadBackup'])->name('database.backups.download');
+        Route::post('/database/backups/delete/{file}', [AdminDatabaseController::class, 'deleteBackup'])->name('database.backups.delete');
+        Route::post('/database/backups/toggle', [AdminDatabaseController::class, 'toggleAutoBackup'])->name('database.backups.toggle');
+        // Migraciones y mantenimiento
+        Route::post('/database/migrate', [AdminDatabaseController::class, 'runMigrations'])->name('database.migrate');
+        Route::post('/database/rollback', [AdminDatabaseController::class, 'rollbackMigrations'])->name('database.rollback');
+        Route::post('/database/optimize', [AdminDatabaseController::class, 'optimizeDatabase'])->name('database.optimize');
+        Route::post('/database/cache/clear', [AdminDatabaseController::class, 'clearCache'])->name('database.cache.clear');
     });
     
     // Rutas de contabilidad
     Route::prefix('accounting')->name('accounting.')->group(function () {
         Route::get('/accounts', function () {
-            return view('accounting.accounts');
+            $domain = \Illuminate\Support\Facades\Auth::user()->emailDomain();
+            $accounts = \App\Models\Account::forDomain($domain)->get();
+            return view('accounting.accounts', compact('accounts'));
         })->name('accounts');
         
         Route::get('/accounts/create', function () {
             return view('accounting.accounts-create');
         })->name('accounts.create');
         
-        Route::post('/accounts', function () {
+        Route::post('/accounts', function (\Illuminate\Http\Request $request) {
+            // Validación básica
+            $validated = $request->validate([
+                'account_code' => ['required', 'string', 'max:10', \Illuminate\Validation\Rule::unique('accounts', 'code')],
+                'account_name' => ['required', 'string', 'max:255'],
+                'account_type' => ['required', 'string'],
+                'normal_balance' => ['required', 'string'],
+                'initial_balance' => ['nullable', 'numeric'],
+                'description' => ['nullable', 'string'],
+                'is_active' => ['nullable'],
+                'parent_account' => ['nullable', 'string'],
+                'level' => ['required', 'integer'],
+                'confirm_domain' => ['nullable', 'string']
+            ]);
+
+            // Confirmación de dominio (si se envía desde el formulario)
+            $userDomain = \Illuminate\Support\Facades\Auth::user()->emailDomain();
+            if (!empty($validated['confirm_domain']) && $validated['confirm_domain'] !== $userDomain) {
+                return back()->withErrors(['confirm_domain' => 'El dominio confirmado no coincide con su dominio de servicio.'])->withInput();
+            }
+
+            // Mapear tipos del formulario a los enumerados de la BD
+            $typeInput = $validated['account_type'];
+            $typeMap = [
+                'capital' => 'patrimonio',
+                'ingresos' => 'ingreso',
+                'gastos' => 'gasto',
+                'costos' => 'costo',
+            ];
+            $type = $typeMap[$typeInput] ?? $typeInput; // activo/pasivo pasan directo
+
+            // Mapear saldo normal
+            $nature = $validated['normal_balance'] === 'deudor' ? 'debito' : 'credito';
+
+            // Resolver cuenta padre por código si existe
+            $parentId = null;
+            if (!empty($validated['parent_account'])) {
+                $parent = \App\Models\Account::where('code', $validated['parent_account'])->first();
+                $parentId = $parent?->id;
+            }
+
+            // Verificar unicidad de nombre dentro del dominio activo
+            $existingByName = \App\Models\Account::where('service_domain', $userDomain)
+                ->where('name', $validated['account_name'])
+                ->where('active', true)
+                ->exists();
+
+            if ($existingByName) {
+                return back()
+                    ->withErrors(['account_name' => 'Ya existe una cuenta activa con este nombre en su servicio.'])
+                    ->withInput();
+            }
+
+            // Crear cuenta con dominio del usuario autenticado
+            $account = \App\Models\Account::create([
+                'code' => $validated['account_code'],
+                'name' => $validated['account_name'],
+                'type' => $type,
+                'nature' => $nature,
+                'parent_id' => $parentId,
+                'level' => (int) $validated['level'],
+                'balance' => (float) ($validated['initial_balance'] ?? 0),
+                'active' => $request->boolean('is_active'),
+                'accepts_movements' => true,
+                'description' => $validated['description'] ?? null,
+                'service_domain' => $userDomain,
+                'created_by' => \Illuminate\Support\Facades\Auth::id(),
+            ]);
+
             return redirect()->route('accounting.accounts')->with('success', 'Cuenta creada exitosamente');
         })->name('accounts.store');
         

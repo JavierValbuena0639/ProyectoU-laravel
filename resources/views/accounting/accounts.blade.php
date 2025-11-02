@@ -6,6 +6,7 @@
     <title>Plan de Cuentas - SumAxia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="{{ asset('icons/calculator.svg') }}" type="image/svg+xml">
 </head>
 <body class="bg-gray-50">
     <!-- Header -->
@@ -19,6 +20,13 @@
                 
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-gray-700">{{ Auth::user()->name }}</span>
+                    @php $currentLocale = app()->getLocale(); @endphp
+                    <div class="flex items-center space-x-2">
+                        <a href="{{ route('locale.switch', ['lang' => 'es']) }}" aria-label="Español" title="Español"
+                           class="px-2 py-1 rounded border {{ $currentLocale === 'es' ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-700' }} hover:border-blue-500 hover:text-blue-600">🇪🇸</a>
+                        <a href="{{ route('locale.switch', ['lang' => 'en']) }}" aria-label="English" title="English"
+                           class="px-2 py-1 rounded border {{ $currentLocale === 'en' ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-700' }} hover:border-blue-500 hover:text-blue-600">🇺🇸</a>
+                    </div>
                     <a href="{{ route('dashboard') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
                         <i class="fas fa-home mr-1"></i>Dashboard
                     </a>
@@ -78,7 +86,8 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @php
-                            $accounts = \App\Models\Account::all();
+                            $domain = Auth::user()->emailDomain();
+                            $accounts = isset($accounts) ? $accounts : \App\Models\Account::forDomain($domain)->get();
                         @endphp
                         @foreach($accounts as $account)
                         <tr>
@@ -138,7 +147,8 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Activos</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::where('type', 'asset')->count() }}</p>
+                        @php($domain = Auth::user()->emailDomain())
+                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::forDomain($domain)->where('type', 'activo')->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -150,7 +160,8 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Pasivos</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::where('type', 'liability')->count() }}</p>
+                        @php($domain = Auth::user()->emailDomain())
+                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::forDomain($domain)->where('type', 'pasivo')->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -162,7 +173,8 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Patrimonio</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::where('type', 'equity')->count() }}</p>
+                        @php($domain = Auth::user()->emailDomain())
+                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::forDomain($domain)->where('type', 'patrimonio')->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -174,7 +186,8 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Ingresos</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::where('type', 'income')->count() }}</p>
+                        @php($domain = Auth::user()->emailDomain())
+                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::forDomain($domain)->where('type', 'ingreso')->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -186,7 +199,8 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Gastos</p>
-                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::where('type', 'expense')->count() }}</p>
+                        @php($domain = Auth::user()->emailDomain())
+                        <p class="text-lg font-semibold text-gray-900">{{ \App\Models\Account::forDomain($domain)->where('type', 'gasto')->count() }}</p>
                     </div>
                 </div>
             </div>

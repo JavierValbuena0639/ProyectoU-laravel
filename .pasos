@@ -1,0 +1,103 @@
+Guía paso a paso (Linux Mint) — Clonar con Git y configurar
+
+0) Supuestos
+- Ya tienes Docker y Docker Compose instalados en el sistema.
+- Usarás el archivo `docker-compose.yml` incluido en el repositorio.
+
+1) Descargar el proyecto con Git
+- Clona el repositorio y entra al directorio:
+  git clone https://github.com/JavierValbuena0639/ProyectoU-laravel.git sumaxia && cd sumaxia
+- Si ya lo tienes copiado, puedes saltarte este paso.
+
+2) Configurar el dominio de acceso (elige una opción)
+- Opción A (alias `sumaxia.local`):
+  echo "127.0.0.1 sumaxia.local" | sudo tee -a /etc/hosts
+  En `.env.docker`, deja `APP_URL=http://sumaxia.local:8000`
+
+3) Preparar entorno
+- Copia el archivo de entorno base si lo deseas:
+  cp .env.docker .env
+- Revisa en `.env.docker` (o `.env` si lo copiaste):
+  - `APP_KEY` (ya está definido; puedes generar uno nuevo si quieres)
+  - DB (`DB_HOST=mysql`, `DB_DATABASE=sumaxia`, `DB_USERNAME=sumaxia_user`, `DB_PASSWORD=sumaxia_password`)
+  - MAIL (por defecto Mailtrap, ajusta si necesitas otro proveedor)
+
+4) Arrancar los servicios
+- Levanta los contenedores:
+  docker compose up -d --build
+- Verifica que el servicio `app` esté en ejecución:
+  docker compose ps
+
+5) Inicialización automática
+- El contenedor `app` inicia con `/usr/local/bin/init-app.sh` y realiza:
+  - Creación de directorios `storage` y `bootstrap/cache`.
+  - Ajuste de permisos (`chown/chmod`) para evitar "Permission denied".
+  - Limpieza de cachés de Laravel.
+  - Ejecución de migraciones.
+  - Enlace de `storage` y arranque de `supervisord`.
+- Normalmente no necesitas hacer nada manual. Si aún ves "Permission denied", aplica uno de estos:
+  - En el host Linux:
+    sudo chown -R $USER:$USER storage bootstrap/cache && chmod -R 775 storage bootstrap/cache && mkdir -p storage/framework/{cache,sessions,testing,views}
+    # Ajuste fino (opcional)
+    find storage -type d -exec chmod 775 {} \; && find storage -type f -exec chmod 664 {} \;
+  - Dentro del contenedor:
+    docker compose exec ID bash -lc "mkdir -p storage/framework/{cache,sessions,testing,views} && chown -R www-data:www-data storage bootstrap/cache && chmod -R 775 storage bootstrap/cache"
+
+6) Migraciones y datos de ejemplo
+- Si necesitas reejecutar manualmente:
+  docker compose exec app php artisan migrate --seed
+- Esto crea roles y usuarios demo para probar login.
+
+7) Limpieza/carga de cachés
+- Útil después de cambios en `.env` o configuración:
+  docker compose exec app php artisan config:clear && docker compose exec app php artisan cache:clear && docker compose exec app php artisan route:clear && docker compose exec app php artisan view:clear && docker compose exec app php artisan config:cache
+  # Opcional (solo si `APP_KEY` es válido):
+  docker compose exec app php artisan config:cache
+
+8) Acceso a la aplicación
+- Con alias:  http://sumaxia.local:8000
+- Con localhost: http://localhost:8000
+
+9) Credenciales de prueba
+- Admin:    admin@sumaxia.com / admin123
+- Usuario:  user@sumaxia.com  / user123
+- Soporte:  javi.valbuena0997@gmail.com / Aaa.12715!
+
+10) phpMyAdmin (opcional)
+- URL: http://localhost:8080
+- Servidor: `mysql`, Usuario: `root`, Password: `root_password`
+- Base de datos: `sumaxia`
+
+11) Diagnóstico rápido
+- Logs del contenedor app:
+  docker compose logs -f app
+- Log de Laravel (hosteado dentro del contenedor):
+  docker compose exec app tail -n 200 storage/logs/laravel.log
+- Comprobar respuesta HTTP desde host:
+  curl -I http://localhost:8000/
+
+12) Servicio de frontend (opcional)
+- Arranca el servicio con Vite:
+  docker compose up -d node
+- Accede a Vite: http://localhost:5173
+
+13) Reset del entorno (si algo quedó inconsistente)
+- Bajar y eliminar volúmenes, luego levantar de nuevo:
+  docker compose down -v
+  docker compose up -d --build
+  docker compose exec app php artisan migrate --seed
+
+14) Notas útiles
+- Si montas volúmenes en Linux y persisten problemas de permisos, puedes probar (opcional) en `docker-compose.yml` bajo `app`:
+  user: "1000:1000"
+  Ten en cuenta que si el contenedor no corre como root, algunos `chown` del script podrían no aplicar.
+- El comando de arranque del servicio `app` ya está configurado a `/usr/local/bin/init-app.sh` para automatizar permisos y preparación del entorno.
+
+15) Rebuild completo del stack (comandos)
+- Ejecuta en consola, dentro del directorio del proyecto:
+  docker compose down -v            # detiene y elimina contenedores, redes y volúmenes
+  docker compose build --no-cache   # reconstruye imágenes desde cero, sin caché
+  docker compose --env-file .env.docker up -d   # levanta servicios con el entorno .env.docker
+  docker compose ps                 # verifica estados
+- Alternativa con script:
+  chmod +x scripts/rebuild_stack.sh && ./scripts/rebuild_stack.sh

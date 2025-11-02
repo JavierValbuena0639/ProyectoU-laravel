@@ -6,6 +6,7 @@
     <title>Procesar Nómina - SumAxia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ asset('icons/calculator.svg') }}" type="image/svg+xml">
 </head>
 <body class="bg-gray-50">
     <!-- Header -->
@@ -19,6 +20,11 @@
                 </div>
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-gray-600">Bienvenido, {{ Auth::user()->name ?? 'Usuario' }}</span>
+                    <div class="flex items-center space-x-2 text-sm">
+            <a href="{{ route('locale.switch', ['lang' => 'es']) }}" class="{{ app()->getLocale() === 'es' ? 'font-semibold text-blue-600' : 'text-gray-600 hover:text-blue-600' }}">ES</a>
+                        <span class="text-gray-300">|</span>
+            <a href="{{ route('locale.switch', ['lang' => 'en']) }}" class="{{ app()->getLocale() === 'en' ? 'font-semibold text-blue-600' : 'text-gray-600 hover:text-blue-600' }}">EN</a>
+                    </div>
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
                         <button type="submit" class="text-sm text-red-600 hover:text-red-800">
@@ -42,7 +48,7 @@
                 <li>
                     <div class="flex items-center">
                         <i class="fas fa-chevron-right text-gray-400 mx-2"></i>
-                        <a href="{{ route('payroll') }}" class="text-gray-700 hover:text-blue-600">Nómina</a>
+                        <a href="{{ route('payroll.index') }}" class="text-gray-700 hover:text-blue-600">Nómina</a>
                     </div>
                 </li>
                 <li>
@@ -310,7 +316,7 @@
 
                 <!-- Buttons -->
                 <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                    <a href="{{ route('payroll') }}" 
+                    <a href="{{ route('payroll.index') }}" 
                        class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <i class="fas fa-times mr-2"></i>Cancelar
                     </a>
@@ -324,6 +330,100 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="preview-modal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+        <!-- Overlay -->
+        <div id="preview-overlay" class="absolute inset-0 bg-black bg-opacity-40"></div>
+        <!-- Panel -->
+        <div class="absolute inset-0 flex items-start justify-center p-4 sm:p-6 md:p-8">
+            <div class="w-full max-w-5xl bg-white rounded-lg shadow-xl overflow-hidden">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-eye text-gray-700 mr-2"></i>Vista previa de nómina
+                    </h3>
+                    <button id="preview-close" class="text-gray-500 hover:text-gray-700 focus:outline-none" aria-label="Cerrar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="px-6 py-6">
+                    <!-- Validation notice -->
+                    <div id="preview-validation" class="hidden mb-4">
+                        <div class="flex items-start p-4 bg-yellow-50 border border-yellow-200 rounded-md text-yellow-800">
+                            <i class="fas fa-exclamation-triangle mt-1 mr-3"></i>
+                            <div>
+                                <p class="font-medium">Faltan datos requeridos para una vista previa completa.</p>
+                                <p class="text-sm">Complete el tipo de nómina y el período para ver el resumen detallado.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Summary grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-gray-50 rounded-md p-4">
+                            <div class="text-xs text-gray-500">Empleados</div>
+                            <div id="preview-employees" class="mt-1 font-medium text-gray-900">-</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-md p-4">
+                            <div class="text-xs text-gray-500">Tipo de nómina</div>
+                            <div id="preview-type" class="mt-1 font-medium text-gray-900">-</div>
+                        </div>
+                        <div class="bg-gray-50 rounded-md p-4">
+                            <div class="text-xs text-gray-500">Período</div>
+                            <div id="preview-period" class="mt-1 font-medium text-gray-900">-</div>
+                        </div>
+                    </div>
+
+                    <!-- Details -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="text-md font-semibold text-gray-800 mb-3">
+                                <i class="fas fa-plus-circle mr-2 text-green-600"></i>Percepciones incluidas
+                            </h4>
+                            <ul id="preview-perceptions" class="list-disc pl-6 text-sm text-gray-700 space-y-1"></ul>
+                        </div>
+                        <div>
+                            <h4 class="text-md font-semibold text-gray-800 mb-3">
+                                <i class="fas fa-minus-circle mr-2 text-red-600"></i>Deducciones incluidas
+                            </h4>
+                            <ul id="preview-deductions" class="list-disc pl-6 text-sm text-gray-700 space-y-1"></ul>
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <h4 class="text-md font-semibold text-gray-800 mb-3">
+                            <i class="fas fa-sliders-h mr-2 text-gray-700"></i>Opciones adicionales
+                        </h4>
+                        <ul id="preview-options" class="list-disc pl-6 text-sm text-gray-700 space-y-1"></ul>
+                    </div>
+
+                    <div class="mt-6">
+                        <h4 class="text-md font-semibold text-gray-800 mb-3">
+                            <i class="fas fa-calculator mr-2 text-blue-600"></i>Cálculos estimados (resumen)
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-blue-50 border border-blue-100 rounded-md p-4">
+                                <div class="text-xs text-blue-700">Total percepciones</div>
+                                <div id="preview-total-perceptions" class="mt-1 font-semibold text-blue-800">-</div>
+                            </div>
+                            <div class="bg-red-50 border border-red-100 rounded-md p-4">
+                                <div class="text-xs text-red-700">Total deducciones</div>
+                                <div id="preview-total-deductions" class="mt-1 font-semibold text-red-800">-</div>
+                            </div>
+                            <div class="bg-green-50 border border-green-100 rounded-md p-4">
+                                <div class="text-xs text-green-700">Neto estimado</div>
+                                <div id="preview-net" class="mt-1 font-semibold text-green-800">-</div>
+                            </div>
+                        </div>
+                        <p class="mt-3 text-xs text-gray-500">Los valores son ilustrativos. Los cálculos exactos requieren datos de salario y horas por empleado.</p>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-200 flex justify-end">
+                    <button id="preview-close-bottom" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Cerrar</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -373,9 +473,113 @@
         document.getElementById('period_end').addEventListener('change', updatePeriodSummary);
 
         // Preview functionality
+        function collectChecked(names) {
+            const labelsMap = {
+                include_base_salary: 'Sueldo Base',
+                include_overtime: 'Horas Extra',
+                include_bonuses: 'Bonos y Comisiones',
+                include_allowances: 'Prestaciones',
+                include_isr: 'ISR',
+                include_imss: 'IMSS',
+                include_infonavit: 'INFONAVIT',
+                include_other_deductions: 'Otras Deducciones',
+                generate_receipts: 'Generar recibos',
+                send_notifications: 'Enviar notificaciones por email',
+                create_accounting_entries: 'Crear asientos contables',
+                backup_before_process: 'Respaldo antes de procesar',
+            };
+            const result = [];
+            names.forEach(name => {
+                const input = document.querySelector(`input[name="${name}"]`);
+                if (input && input.checked) {
+                    result.push(labelsMap[name] || name);
+                }
+            });
+            return result;
+        }
+
+        function getSelectedEmployees() {
+            const selection = document.querySelector('input[name="employee_selection"]:checked')?.value || 'all';
+            if (selection === 'all') {
+                return { label: 'Todos los empleados activos', list: [] };
+            }
+            if (selection === 'department') {
+                const select = document.getElementById('selected_departments');
+                const selected = Array.from(select.selectedOptions).map(o => o.textContent);
+                return { label: `Por departamento (${selected.length})`, list: selected };
+            }
+            // individual
+            const container = document.getElementById('individual-selection');
+            const items = Array.from(container.querySelectorAll('label')).filter(label => {
+                const input = label.querySelector('input[type="checkbox"]');
+                return input && input.checked;
+            }).map(label => label.querySelector('span')?.textContent || 'Empleado');
+            return { label: `Empleados específicos (${items.length})`, list: items };
+        }
+
+        function renderPreview() {
+            const payrollTypeEl = document.getElementById('payroll_type');
+            const payrollTypeText = payrollTypeEl.value ? payrollTypeEl.options[payrollTypeEl.selectedIndex].text : '-';
+            const startDate = document.getElementById('period_start').value;
+            const endDate = document.getElementById('period_end').value;
+            const periodText = (startDate && endDate) ? `${startDate} al ${endDate}` : '-';
+
+            // Fill summary cards
+            const employees = getSelectedEmployees();
+            document.getElementById('preview-employees').textContent = employees.label;
+            document.getElementById('preview-type').textContent = payrollTypeText;
+            document.getElementById('preview-period').textContent = periodText;
+
+            // Fill lists
+            const perceptions = collectChecked(['include_base_salary','include_overtime','include_bonuses','include_allowances']);
+            const deductions = collectChecked(['include_isr','include_imss','include_infonavit','include_other_deductions']);
+            const options = collectChecked(['generate_receipts','send_notifications','create_accounting_entries','backup_before_process']);
+
+            function renderList(elId, items) {
+                const el = document.getElementById(elId);
+                el.innerHTML = '';
+                if (!items.length) {
+                    el.innerHTML = '<li class="text-gray-500">Ninguna</li>';
+                    return;
+                }
+                items.forEach(text => {
+                    const li = document.createElement('li');
+                    li.textContent = text;
+                    el.appendChild(li);
+                });
+            }
+            renderList('preview-perceptions', perceptions);
+            renderList('preview-deductions', deductions);
+            renderList('preview-options', options);
+
+            // Illustrative totals (placeholders)
+            document.getElementById('preview-total-perceptions').textContent = '-';
+            document.getElementById('preview-total-deductions').textContent = '-';
+            document.getElementById('preview-net').textContent = '-';
+
+            // Validation notice
+            const validation = document.getElementById('preview-validation');
+            if (!payrollTypeEl.value || !startDate || !endDate) {
+                validation.classList.remove('hidden');
+            } else {
+                validation.classList.add('hidden');
+            }
+        }
+
+        function openPreviewModal() {
+            document.getElementById('preview-modal').classList.remove('hidden');
+        }
+        function closePreviewModal() {
+            document.getElementById('preview-modal').classList.add('hidden');
+        }
+
         document.getElementById('preview-btn').addEventListener('click', function() {
-            alert('Vista previa de nómina - Esta funcionalidad mostraría un resumen detallado de los cálculos antes del procesamiento final.');
+            renderPreview();
+            openPreviewModal();
         });
+        document.getElementById('preview-close').addEventListener('click', closePreviewModal);
+        document.getElementById('preview-close-bottom').addEventListener('click', closePreviewModal);
+        document.getElementById('preview-overlay').addEventListener('click', closePreviewModal);
 
         // Auto-set period end based on payroll type and start date
         document.getElementById('payroll_type').addEventListener('change', function() {

@@ -17,11 +17,14 @@ class UserSeeder extends Seeder
         $adminRole = \App\Models\Role::where('name', 'admin')->first();
         $userRole = \App\Models\Role::where('name', 'user')->first();
 
+        // Usar misma contraseña para todos los usuarios demo
+        $demoPassword = Hash::make('demo123');
+
         $users = [
             [
                 'name' => 'Administrador',
                 'email' => 'admin@sumaxia.com',
-                'password' => Hash::make('admin123'),
+                'password' => $demoPassword,
                 'role_id' => $adminRole->id,
                 'active' => true,
                 'email_verified_at' => now(),
@@ -29,7 +32,7 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Usuario Demo',
                 'email' => 'user@sumaxia.com',
-                'password' => Hash::make('user123'),
+                'password' => $demoPassword,
                 'role_id' => $userRole->id,
                 'active' => true,
                 'email_verified_at' => now(),

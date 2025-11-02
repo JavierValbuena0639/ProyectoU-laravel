@@ -6,6 +6,7 @@
     <title>Transacciones - SumAxia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="{{ asset('icons/calculator.svg') }}" type="image/svg+xml">
 </head>
 <body class="bg-gray-50">
     <!-- Header -->
@@ -19,6 +20,13 @@
                 
                 <div class="flex items-center space-x-4">
                     <span class="text-sm text-gray-700">{{ Auth::user()->name }}</span>
+                    @php $currentLocale = app()->getLocale(); @endphp
+                    <div class="flex items-center space-x-2">
+                        <a href="{{ route('locale.switch', ['lang' => 'es']) }}" aria-label="Español" title="Español"
+                           class="px-2 py-1 rounded border {{ $currentLocale === 'es' ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-700' }} hover:border-blue-500 hover:text-blue-600">🇪🇸</a>
+                        <a href="{{ route('locale.switch', ['lang' => 'en']) }}" aria-label="English" title="English"
+                           class="px-2 py-1 rounded border {{ $currentLocale === 'en' ? 'border-blue-500 text-blue-600' : 'border-gray-300 text-gray-700' }} hover:border-blue-500 hover:text-blue-600">🇺🇸</a>
+                    </div>
                     <a href="{{ route('dashboard') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
                         <i class="fas fa-home mr-1"></i>Dashboard
                     </a>
@@ -101,7 +109,14 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @php
-                            $transactions = \App\Models\Transaction::with('account')->latest()->take(20)->get();
+                            $domain = auth()->user()->emailDomain();
+                            $transactions = \App\Models\Transaction::with('account')
+                                ->whereHas('account', function($q) use ($domain){
+                                    $q->where('service_domain', $domain);
+                                })
+                                ->latest()
+                                ->take(20)
+                                ->get();
                         @endphp
                         @foreach($transactions as $transaction)
                         <tr>
@@ -120,13 +135,13 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                    {{ $transaction->type === 'debit' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
-                                    {{ $transaction->type === 'debit' ? 'Débito' : 'Crédito' }}
+                                    {{ $transaction->isDebit() ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
+                                    {{ $transaction->isDebit() ? 'Débito' : 'Crédito' }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium 
-                                {{ $transaction->type === 'debit' ? 'text-red-600' : 'text-green-600' }}">
-                                ${{ number_format($transaction->amount, 2) }}
+                                {{ $transaction->isDebit() ? 'text-red-600' : 'text-green-600' }}">
+                                @money($transaction->isDebit() ? $transaction->debit_amount : $transaction->credit_amount)
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <button class="text-blue-600 hover:text-blue-900 mr-3">
@@ -155,7 +170,8 @@
                     </div>
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Total Transacciones</p>
-                        <p class="text-2xl font-semibold text-gray-900">{{ \App\Models\Transaction::count() }}</p>
+                        @php $domain = $domain ?? auth()->user()->emailDomain(); @endphp
+                        <p class="text-2xl font-semibold text-gray-900">{{ \App\Models\Transaction::whereHas('account', function($q) use ($domain){ $q->where('service_domain', $domain); })->count() }}</p>
                     </div>
                 </div>
             </div>
@@ -168,7 +184,7 @@
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Total Débitos</p>
                         <p class="text-2xl font-semibold text-red-600">
-                            ${{ number_format(\App\Models\Transaction::where('type', 'debit')->sum('amount'), 2) }}
+                            @money(\App\Models\Transaction::where('debit_amount', '>', 0)->sum('debit_amount'))
                         </p>
                     </div>
                 </div>
@@ -182,7 +198,7 @@
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Total Créditos</p>
                         <p class="text-2xl font-semibold text-green-600">
-                            ${{ number_format(\App\Models\Transaction::where('type', 'credit')->sum('amount'), 2) }}
+                            @money(\App\Models\Transaction::where('credit_amount', '>', 0)->sum('credit_amount'))
                         </p>
                     </div>
                 </div>
@@ -196,10 +212,12 @@
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Balance</p>
                         @php
-                            $balance = \App\Models\Transaction::where('type', 'credit')->sum('amount') - \App\Models\Transaction::where('type', 'debit')->sum('amount');
+                            $totalDebits = \App\Models\Transaction::where('debit_amount', '>', 0)->sum('debit_amount');
+                            $totalCredits = \App\Models\Transaction::where('credit_amount', '>', 0)->sum('credit_amount');
+                            $balance = $totalCredits - $totalDebits;
                         @endphp
                         <p class="text-2xl font-semibold {{ $balance >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                            ${{ number_format($balance, 2) }}
+                            @money($balance)
                         </p>
                     </div>
                 </div>

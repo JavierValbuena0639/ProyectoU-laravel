@@ -1,0 +1,110 @@
+Guía paso a paso (Windows) — Virtual host sumaxia.local
+
+0) Supuestos
+- Tienes Docker Desktop para Windows instalado y funcionando (ideal con WSL2).
+- Usarás el archivo `docker-compose.yml` incluido en el repositorio.
+- Ejecutarás comandos en PowerShell (recomendado) o CMD.
+
+1) Descargar el proyecto con Git
+- Clona el repositorio y entra al directorio:
+  git clone https://github.com/JavierValbuena0639/ProyectoU-laravel.git sumaxia ; cd sumaxia
+- Si ya lo tienes copiado, puedes saltarte este paso.
+
+2) Configurar el alias de acceso `sumaxia.local`
+- Edita el archivo de hosts de Windows (requiere Administrador):
+  Ruta: C:\Windows\System32\drivers\etc\hosts
+  Agrega la línea:
+  127.0.0.1 sumaxia.local
+- Opción PowerShell (ejecutar como Administrador):
+  $hostsPath = "$env:SystemRoot\System32\drivers\etc\hosts"
+  $entry = "127.0.0.1 sumaxia.local"
+  if (-not (Select-String -Path $hostsPath -Pattern 'sumaxia\.local' -Quiet)) { Add-Content -Path $hostsPath -Value $entry }
+- Nota: Esto no crea un virtualhost en Windows, solo un alias del host al puerto publicado por el contenedor. El Nginx real corre dentro del contenedor `app`.
+
+3) Preparar entorno
+- Copia el archivo de entorno para Docker si lo deseas:
+  Copy-Item .env.docker .env
+- Revisa en `.env.docker` (o `.env` si lo copiaste):
+  - APP_URL=http://sumaxia.local:8000
+  - DB (DB_HOST=mysql, DB_DATABASE=sumaxia, DB_USERNAME=sumaxia_user, DB_PASSWORD=sumaxia_password)
+  - MAIL (por defecto Mailtrap; ajusta si necesitas otro proveedor)
+
+4) Arrancar los servicios
+- Levanta los contenedores (reconstruye si es primera vez):
+  docker compose up -d --build
+- Verifica estado:
+  docker compose ps
+
+5) Inicialización automática
+- El contenedor `app` se inicializa con `/usr/local/bin/init-app.sh`, creando directorios, ajustando permisos y limpiando cachés de Laravel.
+- El build neutraliza diferencias Windows/Linux (CRLF→LF) y el comando de arranque invoca el script con `bash`; no necesitas pasos manuales extra.
+
+6) Acceso a la aplicación
+- Con alias:  http://sumaxia.local:8000/
+- Con localhost: http://localhost:8000/
+
+7) Credenciales de prueba
+- Admin:    admin@sumaxia.com / admin123
+- Soporte:  javi.valbuena0997@gmail.com / Aaa.12715!
+- Usuario:  user@sumaxia.com / user123
+
+8) phpMyAdmin (opcional)
+- URL: http://localhost:8080/
+- Servidor: mysql
+- Usuario: root
+- Password: root_password
+- Base de datos: sumaxia
+
+9) Mailpit (opcional)
+- UI:   http://localhost:8025/
+- SMTP: localhost:1025
+
+10) Cambiar cuenta/proveedor SMTP (rápido)
+- Mailtrap Sandbox:
+  - En `.env.docker`: `MAIL_HOST=sandbox.smtp.mailtrap.io`, `MAIL_PORT=2525`, `MAIL_USERNAME=<username>`, `MAIL_PASSWORD=<password>`, `MAIL_ENCRYPTION=null`.
+  - Aplicar: `docker compose up -d --force-recreate app` y luego `docker compose exec app php artisan config:clear; docker compose exec app php artisan cache:clear`.
+- Mailtrap Email Sending (producción):
+  - En `.env.docker`: `MAIL_HOST=smtp.mailtrap.io`, `MAIL_PORT=2525`, `MAIL_ENCRYPTION=tls`, credenciales de Sending y `MAIL_FROM_ADDRESS` de dominio verificado.
+- Mailpit local:
+  - En `.env.docker`: `MAIL_HOST=mailpit`, `MAIL_PORT=1025`, `MAIL_ENCRYPTION=null`, `MAIL_USERNAME`/`MAIL_PASSWORD` vacíos. Levanta `mailpit` con `docker compose up -d mailpit`.
+- Verificación rápida:
+  - `docker compose exec app php artisan tinker` → `Mail::raw('Prueba SMTP', function($m){ $m->to('dev@example.com')->subject('Test SMTP'); });`
+- Si ves `535 email limit is reached` en Mailtrap, cambia de inbox/cuenta o alterna a Mailpit.
+- PowerShell (esperado 200):
+  try { (Invoke-WebRequest -Uri 'http://sumaxia.local:8000/' -Method Head -UseBasicParsing).StatusCode } catch { $_.Exception.Response.StatusCode.Value__ }
+- Alternativa explícita con `curl.exe`:
+  curl.exe -I http://sumaxia.local:8000/
+
+11) Diagnóstico rápido
+- Logs del contenedor app:
+  docker compose logs -f app
+- Log de Laravel (dentro del contenedor):
+  docker compose exec app tail -n 200 storage/logs/laravel.log
+- Comprobar puertos publicados:
+  docker compose ps
+
+12) Servicio de frontend (opcional)
+- Arranca Vite (hot reload):
+  docker compose up -d node
+- Accede a Vite: http://localhost:5173/
+
+13) Reset del entorno (si algo quedó inconsistente)
+- Bajar y eliminar volúmenes, luego levantar de nuevo:
+  docker compose down -v
+  docker compose up -d --build
+  docker compose exec app php artisan migrate --seed
+
+14) Notas útiles
+- El warning por `version:` en Compose es informativo; puedes ignorarlo.
+- Si `node` aparece reiniciando, no afecta el backend; es opcional para hot reload.
+- Para acceder sin puerto (80:80) tendrías que cambiar el mapeo en `docker-compose.yml`; actualmente se usa `8000:80`.
+- En Windows, evita usar `curl` alias de PowerShell; usa `Invoke-WebRequest` o `curl.exe`.
+
+15) Rebuild completo del stack (comandos)
+- Ejecuta en PowerShell, dentro del directorio del proyecto:
+  docker compose down -v            # detiene y elimina contenedores, redes y volúmenes
+  docker compose build --no-cache   # reconstruye imágenes desde cero
+  docker compose --env-file .env.docker up -d   # levanta servicios con el entorno .env.docker
+  docker compose ps                 # verifica estados
+- Alternativa con script (Windows):
+  powershell -ExecutionPolicy Bypass -File scripts/rebuild_stack.ps1

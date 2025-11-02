@@ -18,7 +18,9 @@ class Account extends Model
         'level',
         'balance',
         'active',
-        'accepts_movements'
+        'accepts_movements',
+        'service_domain',
+        'created_by'
     ];
 
     protected $casts = [
@@ -66,6 +68,14 @@ class Account extends Model
     public function scopeAcceptsMovements($query)
     {
         return $query->where('accepts_movements', true);
+    }
+
+    /**
+     * Scope para filtrar por dominio/servicio
+     */
+    public function scopeForDomain($query, string $domain)
+    {
+        return $query->where('service_domain', $domain);
     }
 
     /**
