@@ -73,6 +73,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/invoices', function () {
             return view('invoicing.invoices');
         })->name('invoices');
+
+        // Exportación CSV de facturas
+        Route::get('/invoices/export/csv', [\App\Http\Controllers\ExportController::class, 'invoicesCsv'])
+            ->name('invoices.export.csv');
         
         Route::get('/invoices/create', function () {
             return view('invoicing.invoices-create');
@@ -120,4 +124,11 @@ Route::middleware(['auth'])->group(function () {
             return view('taxes.taxes');
         })->name('taxes');
     });
-});
+
+    // Rutas de contabilidad
+    Route::prefix('accounting')->name('accounting.')->group(function () {
+        // Mantener rutas existentes, agregamos export CSV para transacciones si no existe
+        Route::get('/transactions/export/csv', [\App\Http\Controllers\ExportController::class, 'transactionsCsv'])
+            ->name('transactions.export.csv');
+    });
+ });
