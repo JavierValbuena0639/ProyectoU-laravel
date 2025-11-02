@@ -78,6 +78,15 @@
                     <a href="{{ route('invoicing.quotes.create') }}" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm">
                         <i class="fas fa-file-alt mr-2"></i>{{ __('invoicing.actions.new_quote') }}
                     </a>
+                    <a href="{{ route('invoicing.invoices.export.csv') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm" title="Exportar CSV">
+                        <i class="fas fa-download mr-2"></i>Exportar CSV
+                    </a>
+                    <a href="{{ route('invoicing.invoices.export.csv') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm" title="Exportar CSV">
+                        <i class="fas fa-download mr-2"></i>Exportar CSV
+                    </a>
+                    <a href="{{ route('invoicing.invoices.export.csv') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm" title="Exportar CSV">
+                        <i class="fas fa-download mr-2"></i>Exportar CSV
+                    </a>
                 </div>
             </div>
         </div>

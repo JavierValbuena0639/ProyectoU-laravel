@@ -85,6 +85,9 @@
                     <a href="{{ route('accounting.transactions.create') }}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm inline-block">
                         <i class="fas fa-plus mr-2"></i>Nueva Transacción
                     </a>
+                    <a href="{{ route('accounting.transactions.export.csv') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm inline-block ml-2" title="Exportar CSV">
+                        <i class="fas fa-download mr-2"></i>Exportar CSV
+                    </a>
                 </div>
             </div>
         </div>

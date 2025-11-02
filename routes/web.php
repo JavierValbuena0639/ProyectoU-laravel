@@ -284,6 +284,10 @@ Route::middleware(['auth', 'inactive', 'verified_code'])->group(function () {
         Route::get('/invoices', function () {
             return view('invoicing.invoices');
         })->name('invoices');
+
+        // Exportación CSV de facturas
+        Route::get('/invoices/export/csv', [\App\Http\Controllers\ExportController::class, 'invoicesCsv'])
+            ->name('invoices.export.csv');
         
         Route::get('/invoices/create', function () {
             return view('invoicing.invoices-create');
@@ -293,13 +297,20 @@ Route::middleware(['auth', 'inactive', 'verified_code'])->group(function () {
             return redirect()->route('invoicing.invoices')->with('success', 'Factura creada exitosamente');
         })->name('invoices.store');
         
+        // Cotizaciones: listado, creación, historial, versionado y conversión
+        Route::get('/quotes', [\App\Http\Controllers\Invoicing\QuotesController::class, 'index'])
+            ->name('quotes.index');
         Route::get('/quotes/create', function () {
             return view('invoicing.quotes-create');
         })->name('quotes.create');
-        
-        Route::post('/quotes', function () {
-            return redirect()->route('invoicing.invoices')->with('success', 'Cotización creada exitosamente');
-        })->name('quotes.store');
+        Route::post('/quotes', [\App\Http\Controllers\Invoicing\QuotesController::class, 'store'])
+            ->name('quotes.store');
+        Route::get('/quotes/{quote}/history', [\App\Http\Controllers\Invoicing\QuotesController::class, 'history'])
+            ->name('quotes.history');
+        Route::post('/quotes/{quote}/version', [\App\Http\Controllers\Invoicing\QuotesController::class, 'version'])
+            ->name('quotes.version');
+        Route::post('/quotes/{quote}/convert', [\App\Http\Controllers\Invoicing\QuotesController::class, 'convert'])
+            ->name('quotes.convert');
     });
     
     // Rutas de nómina
@@ -331,4 +342,11 @@ Route::middleware(['auth', 'inactive', 'verified_code'])->group(function () {
             return view('taxes.taxes');
         })->name('taxes');
     });
-});
+
+    // Rutas de contabilidad
+    Route::prefix('accounting')->name('accounting.')->group(function () {
+        // Mantener rutas existentes, agregamos export CSV para transacciones si no existe
+        Route::get('/transactions/export/csv', [\App\Http\Controllers\ExportController::class, 'transactionsCsv'])
+            ->name('transactions.export.csv');
+    });
+ });
