@@ -86,13 +86,20 @@ Route::middleware(['auth'])->group(function () {
             return redirect()->route('invoicing.invoices')->with('success', 'Factura creada exitosamente');
         })->name('invoices.store');
         
+        // Cotizaciones: listado, creación, historial, versionado y conversión
+        Route::get('/quotes', [\App\Http\Controllers\Invoicing\QuotesController::class, 'index'])
+            ->name('quotes.index');
         Route::get('/quotes/create', function () {
             return view('invoicing.quotes-create');
         })->name('quotes.create');
-        
-        Route::post('/quotes', function () {
-            return redirect()->route('invoicing.invoices')->with('success', 'Cotización creada exitosamente');
-        })->name('quotes.store');
+        Route::post('/quotes', [\App\Http\Controllers\Invoicing\QuotesController::class, 'store'])
+            ->name('quotes.store');
+        Route::get('/quotes/{quote}/history', [\App\Http\Controllers\Invoicing\QuotesController::class, 'history'])
+            ->name('quotes.history');
+        Route::post('/quotes/{quote}/version', [\App\Http\Controllers\Invoicing\QuotesController::class, 'version'])
+            ->name('quotes.version');
+        Route::post('/quotes/{quote}/convert', [\App\Http\Controllers\Invoicing\QuotesController::class, 'convert'])
+            ->name('quotes.convert');
     });
     
     // Rutas de nómina
