@@ -264,6 +264,72 @@ Route::middleware(['auth', 'inactive', 'verified_code'])->group(function () {
 
             return redirect()->route('accounting.accounts')->with('success', 'Cuenta creada exitosamente');
         })->name('accounts.store');
+
+        // Editar cuenta
+        Route::get('/accounts/{account}/edit', function (\App\Models\Account $account) {
+            return view('accounting.accounts-edit', compact('account'));
+        })->name('accounts.edit');
+
+        // Actualizar cuenta
+        Route::put('/accounts/{account}', function (\Illuminate\Http\Request $request, \App\Models\Account $account) {
+            $validated = $request->validate([
+                'account_code' => ['required', 'string', 'max:10', \Illuminate\Validation\Rule::unique('accounts', 'code')->ignore($account->id)],
+                'account_name' => ['required', 'string', 'max:255'],
+                'account_type' => ['required', 'string'],
+                'normal_balance' => ['required', 'string'],
+                'initial_balance' => ['nullable', 'numeric'],
+                'description' => ['nullable', 'string'],
+                'is_active' => ['nullable'],
+                'parent_account' => ['nullable', 'string'],
+                'level' => ['required', 'integer'],
+                'confirm_domain' => ['nullable', 'string']
+            ]);
+
+            $userDomain = \Illuminate\Support\Facades\Auth::user()->emailDomain();
+            if (!empty($validated['confirm_domain']) && $validated['confirm_domain'] !== $userDomain) {
+                return back()->withErrors(['confirm_domain' => 'El dominio confirmado no coincide con su dominio de servicio.'])->withInput();
+            }
+
+            $typeInput = $validated['account_type'];
+            $typeMap = [
+                'capital' => 'patrimonio',
+                'ingresos' => 'ingreso',
+                'gastos' => 'gasto',
+                'costos' => 'costo',
+            ];
+            $type = $typeMap[$typeInput] ?? $typeInput;
+
+            $nature = $validated['normal_balance'] === 'deudor' ? 'debito' : 'credito';
+
+            $parentId = null;
+            if (!empty($validated['parent_account'])) {
+                $parent = \App\Models\Account::where('code', $validated['parent_account'])->first();
+                $parentId = $parent?->id;
+            }
+
+            $account->code = $validated['account_code'];
+            $account->name = $validated['account_name'];
+            $account->type = $type;
+            $account->nature = $nature;
+            $account->parent_id = $parentId;
+            $account->level = (int) $validated['level'];
+            $account->balance = (float) ($validated['initial_balance'] ?? $account->balance ?? 0);
+            // Usamos solo la columna 'active' que existe en la tabla
+            $account->active = $request->boolean('is_active');
+            $account->description = $validated['description'] ?? null;
+            $account->service_domain = $userDomain; // mantiene dominio
+            $account->save();
+
+            return redirect()->route('accounting.accounts')->with('success', 'Cuenta actualizada exitosamente');
+        })->name('accounts.update');
+
+        // Desactivar cuenta
+        Route::post('/accounts/{account}/deactivate', function (\App\Models\Account $account) {
+            // Desactiva usando la columna válida
+            $account->active = false;
+            $account->save();
+            return redirect()->route('accounting.accounts')->with('success', 'Cuenta desactivada');
+        })->name('accounts.deactivate');
         
         Route::get('/transactions', function () {
             return view('accounting.transactions');
@@ -273,10 +339,16 @@ Route::middleware(['auth', 'inactive', 'verified_code'])->group(function () {
             return view('accounting.transactions-create');
         })->name('transactions.create');
         
-        Route::post('/transactions', function () {
-            // Aquí iría la lógica para guardar la transacción
-            return redirect()->route('accounting.transactions')->with('success', 'Transacción creada exitosamente');
-        })->name('transactions.store');
+        Route::post('/transactions', [\App\Http\Controllers\Accounting\TransactionsController::class, 'store'])
+            ->name('transactions.store');
+        Route::get('/transactions/{transaction}', [\App\Http\Controllers\Accounting\TransactionsController::class, 'show'])
+            ->name('transactions.show');
+        Route::get('/transactions/{transaction}/edit', [\App\Http\Controllers\Accounting\TransactionsController::class, 'edit'])
+            ->name('transactions.edit');
+        Route::put('/transactions/{transaction}', [\App\Http\Controllers\Accounting\TransactionsController::class, 'update'])
+            ->name('transactions.update');
+        Route::post('/transactions/{transaction}/cancel', [\App\Http\Controllers\Accounting\TransactionsController::class, 'cancel'])
+            ->name('transactions.cancel');
     });
     
     // Rutas de facturación
@@ -293,9 +365,27 @@ Route::middleware(['auth', 'inactive', 'verified_code'])->group(function () {
             return view('invoicing.invoices-create');
         })->name('invoices.create');
         
-        Route::post('/invoices', function () {
-            return redirect()->route('invoicing.invoices')->with('success', 'Factura creada exitosamente');
-        })->name('invoices.store');
+        Route::post('/invoices', [\App\Http\Controllers\Invoicing\InvoicesController::class, 'store'])
+            ->name('invoices.store');
+
+        // Edición y actualización de facturas
+        Route::get('/invoices/{invoice}/edit', function (\App\Models\Invoice $invoice) {
+            return view('invoicing.invoices-edit', compact('invoice'));
+        })->name('invoices.edit');
+        Route::put('/invoices/{invoice}', [\App\Http\Controllers\Invoicing\InvoicesController::class, 'update'])
+            ->name('invoices.update');
+
+        // Vista/preview de factura
+        Route::get('/invoices/{invoice}', function (\App\Models\Invoice $invoice) {
+            return view('invoicing.invoices-show', compact('invoice'));
+        })->name('invoices.show');
+
+        // Cancelación (soft delete) de factura
+        Route::post('/invoices/{invoice}/cancel', function (\App\Models\Invoice $invoice) {
+            $invoice->status = 'cancelled';
+            $invoice->save();
+            return redirect()->route('invoicing.invoices')->with('success', 'Factura cancelada');
+        })->name('invoices.cancel');
         
         // Cotizaciones: listado, creación, historial, versionado y conversión
         Route::get('/quotes', [\App\Http\Controllers\Invoicing\QuotesController::class, 'index'])
@@ -348,5 +438,8 @@ Route::middleware(['auth', 'inactive', 'verified_code'])->group(function () {
         // Mantener rutas existentes, agregamos export CSV para transacciones si no existe
         Route::get('/transactions/export/csv', [\App\Http\Controllers\ExportController::class, 'transactionsCsv'])
             ->name('transactions.export.csv');
+        // Exportación CSV de cuentas
+        Route::get('/accounts/export/csv', [\App\Http\Controllers\ExportController::class, 'accountsCsv'])
+            ->name('accounts.export.csv');
     });
  });

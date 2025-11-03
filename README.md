@@ -88,6 +88,14 @@ Sumaxia es un sistema integral de gestión empresarial desarrollado en Laravel q
   - Muestra últimos eventos de auditoría desde `storage/logs/audit.log`.
   - Indica si el "primer arranque" fue completado (detecta `storage/app/backups/.boot_init_done`).
 
+- Toasts y envío AJAX de formularios:
+  - Nuevo helper global `window.showToast(type, message)` disponible en todas las vistas (`partials/alerts`).
+  - Envío AJAX sin recargar página para formularios marcados con `data-ajax="true"`.
+  - Uso básico: añadir el atributo al `<form>` y opcionalmente `data-success-message`.
+    - Ejemplo: `<form method="POST" action="..." data-ajax="true" data-success-message="Guardado correctamente">`.
+  - Si el servidor responde JSON con `{ message, redirect }`, se mostrará el mensaje y se seguirá el `redirect` si existe.
+  - Implementado en: Nómina (`/payroll/employees/create`, `/payroll/process`) y Cotizaciones (`/invoicing/quotes/create`).
+
 ### Cómo probar rápidamente
 - Cierra servidores previos y ejecuta `php artisan serve --host=127.0.0.1 --port=8000` y abre `http://127.0.0.1:8000/`.
 - Alterna el idioma con el selector ES/US; el intro y la lista cambian.
@@ -248,6 +256,11 @@ El sistema estará disponible en `http://127.0.0.1:8000`
   - `POST /admin/database/rollback` (revertir última migración)
   - `POST /admin/database/optimize` (optimización)
   - `POST /admin/database/cache/clear` (limpiar caches)
+
+## Documentación
+
+- Configuración de hosts: `SETUP-HOSTS.md`
+- Manual de Usuario Final: `Manual-Usuario-Final-SumAxia.md`
   - Restauración desde respaldo por CLI: `php artisan db:restore <archivo.zip> [--keep]`
 
 - Verificación del sistema (admin o soporte):

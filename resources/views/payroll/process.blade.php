@@ -9,6 +9,7 @@
     <link rel="icon" href="{{ asset('icons/calculator.svg') }}" type="image/svg+xml">
 </head>
 <body class="bg-gray-50">
+    @include('partials.alerts')
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -70,7 +71,7 @@
                 <p class="text-sm text-gray-600 mt-1">Configure los parámetros para procesar la nómina del período seleccionado</p>
             </div>
             
-            <form method="POST" action="{{ route('payroll.process.store') }}" class="p-6">
+            <form method="POST" action="{{ route('payroll.process.store') }}" class="p-6" data-ajax="true" data-success-message="Nómina procesada correctamente">
                 @csrf
                 
                 <!-- Period Selection -->

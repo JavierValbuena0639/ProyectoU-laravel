@@ -11,6 +11,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-100 font-inter min-h-screen flex items-center justify-center">
+    @include('partials.alerts')
     <div class="w-full max-w-md bg-white shadow rounded-lg p-6">
         <div class="flex items-center justify-between mb-4">
             <a href="/" class="text-xl font-semibold text-blue-700">SumAxia</a>

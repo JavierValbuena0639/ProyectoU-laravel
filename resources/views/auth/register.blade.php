@@ -10,6 +10,7 @@
     <style>body{background:linear-gradient(135deg,#f0f7ff,#e9ecff)}</style>
 </head>
 <body class="min-h-screen flex items-center justify-center">
+    @include('partials.alerts')
     <div class="max-w-md w-full space-y-8 p-8">
         <div class="text-center">
             <div class="mx-auto h-16 w-16 bg-green-600 rounded-full flex items-center justify-center mb-4">

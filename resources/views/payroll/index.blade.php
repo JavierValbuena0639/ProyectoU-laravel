@@ -9,6 +9,7 @@
     <link rel="icon" href="{{ asset('icons/calculator.svg') }}" type="image/svg+xml">
 </head>
 <body class="bg-gray-50">
+    @include('partials.alerts')
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -250,7 +251,7 @@
                         <a href="{{ route('payroll.process') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
                             <i class="fas fa-calculator mr-2"></i>{{ __('payroll.reports.actions.new_payroll') }}
                         </a>
-                        <button class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
+                        <button id="btn-export-payrolls" type="button" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
                             <i class="fas fa-download mr-2"></i>{{ __('payroll.reports.actions.export') }}
                         </button>
                     </div>
@@ -832,6 +833,7 @@
 
             const btnGenerate = document.getElementById('btn-generate-report');
             const btnDownload = document.getElementById('btn-download-report');
+            const btnExportPayrolls = document.getElementById('btn-export-payrolls');
 
             if (btnGenerate) {
                 btnGenerate.addEventListener('click', () => {
@@ -848,6 +850,17 @@
                     const prd = periodSelect ? periodSelect.value : 'month';
                     const fmt = formatSelect ? formatSelect.value : 'pdf';
                     const type = typeSelect ? typeSelect.value || 'summary' : 'summary';
+                    const url = buildExportUrl(fmt, prd, type);
+                    window.location.href = url;
+                });
+            }
+
+            // Exportar desde pestaña "Nóminas" con valores por defecto
+            if (btnExportPayrolls) {
+                btnExportPayrolls.addEventListener('click', () => {
+                    const prd = 'month';
+                    const fmt = 'csv';
+                    const type = 'summary';
                     const url = buildExportUrl(fmt, prd, type);
                     window.location.href = url;
                 });

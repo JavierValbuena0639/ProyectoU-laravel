@@ -9,6 +9,8 @@
     <link rel="icon" href="{{ asset('icons/calculator.svg') }}" type="image/svg+xml">
 </head>
 <body class="bg-gray-50">
+    @include('partials.alerts')
+    @include('partials.alerts')
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -77,12 +79,6 @@
                     </a>
                     <a href="{{ route('invoicing.quotes.create') }}" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm">
                         <i class="fas fa-file-alt mr-2"></i>{{ __('invoicing.actions.new_quote') }}
-                    </a>
-                    <a href="{{ route('invoicing.invoices.export.csv') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm" title="Exportar CSV">
-                        <i class="fas fa-download mr-2"></i>Exportar CSV
-                    </a>
-                    <a href="{{ route('invoicing.invoices.export.csv') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm" title="Exportar CSV">
-                        <i class="fas fa-download mr-2"></i>Exportar CSV
                     </a>
                     <a href="{{ route('invoicing.invoices.export.csv') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm" title="Exportar CSV">
                         <i class="fas fa-download mr-2"></i>Exportar CSV
@@ -156,27 +152,36 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button class="text-blue-600 hover:text-blue-900 mr-3" title="{{ __('invoicing.actions.view') }}">
+                                <button class="text-blue-600 hover:text-blue-900 mr-3 btn-view-invoice"
+                                        title="{{ __('invoicing.actions.view') }}"
+                                        data-number="{{ $invoice->invoice_number }}"
+                                        data-client="{{ $invoice->client_name }}"
+                                        data-email="{{ $invoice->client_email }}"
+                                        data-date="{{ $invoice->invoice_date->format('d/m/Y') }}"
+                                        data-due="{{ $invoice->due_date->format('d/m/Y') }}"
+                                        data-total="{{ number_format($invoice->total_amount, 2) }}"
+                                        data-status="{{ $invoice->status }}">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                <button class="text-green-600 hover:text-green-900 mr-3" title="{{ __('invoicing.actions.edit') }}">
+                                <a href="{{ route('invoicing.invoices.edit', $invoice->id) }}" class="text-green-600 hover:text-green-900 mr-3" title="{{ __('invoicing.actions.edit') }}">
                                     <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="text-purple-600 hover:text-purple-900 mr-3" title="{{ __('invoicing.actions.pdf') }}">
+                                </a>
+                                <a href="{{ route('invoicing.invoices.show', $invoice->id) }}" target="_blank" class="text-purple-600 hover:text-purple-900 mr-3" title="{{ __('invoicing.actions.pdf') }}">
                                     <i class="fas fa-file-pdf"></i>
-                                </button>
-                                <button class="text-yellow-600 hover:text-yellow-900 mr-3" title="{{ __('invoicing.actions.send') }}">
-                                    <i class="fas fa-paper-plane"></i>
-                                </button>
+                                </a>
+                                <!-- Botón de enviar eliminado según solicitud -->
                                 <form action="{{ route('admin.fe.invoice.send', ['invoice' => $invoice->id]) }}" method="POST" class="inline">
                                     @csrf
                                     <button type="submit" class="text-blue-700 hover:text-blue-900 mr-3" title="{{ __('invoicing.actions.send_to_dian') }}">
                                         <i class="fas fa-cloud-upload-alt"></i>
                                     </button>
                                 </form>
-                                <button class="text-red-600 hover:text-red-900" title="{{ __('invoicing.actions.delete') }}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                <form action="{{ route('invoicing.invoices.cancel', $invoice->id) }}" method="POST" class="inline">
+                                    @csrf
+                                    <button type="submit" class="text-red-600 hover:text-red-900" title="{{ __('invoicing.actions.delete') }}" onclick="return confirm('¿Quieres cancelar esta factura?')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         @endforeach
@@ -249,5 +254,76 @@
             </div>
         </div>
     </div>
+    
+    <!-- Modal: Vista Rápida de Factura -->
+    <div id="invoiceModal" class="fixed inset-0 hidden bg-black bg-opacity-30 items-center justify-center">
+        <div class="bg-white w-full max-w-lg rounded-lg shadow-lg">
+            <div class="px-6 py-4 border-b">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-eye mr-2"></i>Vista de Factura
+                </h3>
+            </div>
+            <div class="p-6 space-y-2 text-sm">
+                <p><span class="font-medium">Número:</span> <span id="mNumber"></span></p>
+                <p><span class="font-medium">Cliente:</span> <span id="mClient"></span></p>
+                <p><span class="font-medium">Email:</span> <span id="mEmail"></span></p>
+                <p><span class="font-medium">Fecha:</span> <span id="mDate"></span></p>
+                <p><span class="font-medium">Vence:</span> <span id="mDue"></span></p>
+                <p><span class="font-medium">Estado:</span> <span id="mStatus" class="px-2 py-1 rounded text-xs"></span></p>
+                <p><span class="font-medium">Total:</span> <span id="mTotal"></span></p>
+            </div>
+            <div class="px-6 py-4 border-t flex justify-end gap-2">
+                <button id="modalClose" class="px-4 py-2 border rounded">Cerrar</button>
+                <a id="modalOpenFull" href="#" target="_blank" class="px-4 py-2 bg-blue-600 text-white rounded">Abrir Detalle</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('invoiceModal');
+            const closeBtn = document.getElementById('modalClose');
+            const openFull = document.getElementById('modalOpenFull');
+
+            function statusClass(status) {
+                switch(status) {
+                    case 'paid': return 'bg-green-100 text-green-700';
+                    case 'pending': return 'bg-yellow-100 text-yellow-700';
+                    case 'overdue': return 'bg-red-100 text-red-700';
+                    case 'cancelled': return 'bg-gray-100 text-gray-700';
+                    default: return 'bg-blue-100 text-blue-700';
+                }
+            }
+
+            document.querySelectorAll('.btn-view-invoice').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.getElementById('mNumber').textContent = btn.dataset.number || '';
+                    document.getElementById('mClient').textContent = btn.dataset.client || '';
+                    document.getElementById('mEmail').textContent = btn.dataset.email || '';
+                    document.getElementById('mDate').textContent = btn.dataset.date || '';
+                    document.getElementById('mDue').textContent = btn.dataset.due || '';
+                    const st = btn.dataset.status || 'draft';
+                    const stEl = document.getElementById('mStatus');
+                    stEl.textContent = st.charAt(0).toUpperCase() + st.slice(1);
+                    stEl.className = statusClass(st) + ' px-2 py-1 rounded text-xs';
+                    document.getElementById('mTotal').textContent = btn.dataset.total || '';
+                    openFull.href = btn.closest('td').querySelector('a[href*="/invoices/"]')?.href || '#';
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                });
+            });
+
+            closeBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

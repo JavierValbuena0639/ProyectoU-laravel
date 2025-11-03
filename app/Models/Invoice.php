@@ -10,21 +10,21 @@ class Invoice extends Model
 {
     protected $fillable = [
         'invoice_number',
-        'invoice_type',
+        'user_id',
+        'client_name',
+        'client_document',
+        'client_email',
+        'client_address',
         'invoice_date',
         'due_date',
-        'supplier_id',
-        'user_id',
         'subtotal',
         'tax_amount',
-        'discount_amount',
+        'retention_amount',
         'total_amount',
-        'currency',
-        'exchange_rate',
-        'payment_terms',
+        'paid_amount',
         'status',
-        'observations',
-        'details',
+        'notes',
+        'items',
         // FE fields
         'fe_status',
         'fe_cufe',
@@ -41,10 +41,10 @@ class Invoice extends Model
         'due_date' => 'date',
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
-        'discount_amount' => 'decimal:2',
+        'retention_amount' => 'decimal:2',
         'total_amount' => 'decimal:2',
-        'exchange_rate' => 'decimal:4',
-        'details' => 'array'
+        'paid_amount' => 'decimal:2',
+        'items' => 'array'
     ];
 
     // Relaciones

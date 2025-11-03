@@ -9,6 +9,7 @@
     <link rel="icon" href="{{ asset('icons/calculator.svg') }}" type="image/svg+xml">
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center">
+    @include('partials.alerts')
     <div class="max-w-md w-full space-y-8 p-8">
         <!-- Logo y título -->
         <div class="text-center">

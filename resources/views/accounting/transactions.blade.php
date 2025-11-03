@@ -9,6 +9,7 @@
     <link rel="icon" href="{{ asset('icons/calculator.svg') }}" type="image/svg+xml">
 </head>
 <body class="bg-gray-50">
+    @include('partials.alerts')
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -147,15 +148,18 @@
                                 @money($transaction->isDebit() ? $transaction->debit_amount : $transaction->credit_amount)
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button class="text-blue-600 hover:text-blue-900 mr-3">
+                                <a href="{{ route('accounting.transactions.show', $transaction) }}" class="text-blue-600 hover:text-blue-900 mr-3" title="Ver">
                                     <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="text-green-600 hover:text-green-900 mr-3">
+                                </a>
+                                <a href="{{ route('accounting.transactions.edit', $transaction) }}" class="text-green-600 hover:text-green-900 mr-3" title="Editar">
                                     <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="text-red-600 hover:text-red-900">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                </a>
+                                <form action="{{ route('accounting.transactions.cancel', $transaction) }}" method="POST" class="inline" onsubmit="return confirm('¿Cancelar esta transacción?');">
+                                    @csrf
+                                    <button type="submit" class="text-red-600 hover:text-red-900" title="Cancelar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         @endforeach
@@ -215,8 +219,13 @@
                     <div class="ml-4">
                         <p class="text-sm font-medium text-gray-600">Balance</p>
                         @php
-                            $totalDebits = \App\Models\Transaction::where('debit_amount', '>', 0)->sum('debit_amount');
-                            $totalCredits = \App\Models\Transaction::where('credit_amount', '>', 0)->sum('credit_amount');
+                            $domain = $domain ?? Auth::user()->emailDomain();
+                            $totalDebits = \App\Models\Transaction::where('debit_amount', '>', 0)
+                                ->whereHas('account', function($q) use ($domain){ $q->where('service_domain', $domain); })
+                                ->sum('debit_amount');
+                            $totalCredits = \App\Models\Transaction::where('credit_amount', '>', 0)
+                                ->whereHas('account', function($q) use ($domain){ $q->where('service_domain', $domain); })
+                                ->sum('credit_amount');
                             $balance = $totalCredits - $totalDebits;
                         @endphp
                         <p class="text-2xl font-semibold {{ $balance >= 0 ? 'text-green-600' : 'text-red-600' }}">

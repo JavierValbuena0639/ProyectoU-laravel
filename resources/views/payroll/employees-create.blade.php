@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body class="bg-gray-50">
+    @include('partials.alerts')
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -69,7 +70,7 @@
                 <p class="text-sm text-gray-600 mt-1">Complete la información del empleado para agregarlo al sistema de nómina</p>
             </div>
             
-            <form method="POST" action="{{ route('payroll.employees.store') }}" class="p-6">
+            <form method="POST" action="{{ route('payroll.employees.store') }}" class="p-6" data-ajax="true" data-success-message="Empleado registrado correctamente">
                 @csrf
                 
                 <!-- Personal Information -->

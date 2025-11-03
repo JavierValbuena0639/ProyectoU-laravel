@@ -54,11 +54,16 @@ class TenantDemoSeeder extends Seeder
             $exists = DB::table('users')->where('email', $email)->first();
             if ($exists) {
                 $createdUsers[$i] = (int) $exists->id;
+                // Asegurar que tenga email_domain
+                if (empty($exists->email_domain)) {
+                    DB::table('users')->where('id', $exists->id)->update(['email_domain' => $domain]);
+                }
                 continue;
             }
             $userId = DB::table('users')->insertGetId([
                 'name' => "Usuario {$i}",
                 'email' => $email,
+                'email_domain' => $domain,
                 'password' => Hash::make('demo123'),
                 'role_id' => 2, // todos usuarios; único admin es admin@sumaxia.com
                 'active' => true,
@@ -96,33 +101,72 @@ class TenantDemoSeeder extends Seeder
             ]);
         }
 
-        // Crear cuentas contables base
-        $accountCashId = DB::table('accounts')->insertGetId([
-            'code' => '110505',
-            'name' => 'Caja general',
-            'description' => 'Efectivo en caja',
-            'type' => 'activo',
-            'nature' => 'debito',
-            'level' => 4,
-            'balance' => 0,
-            'accepts_movements' => true,
-            'active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-        $accountRevenueId = DB::table('accounts')->insertGetId([
-            'code' => '4135',
-            'name' => 'Ingresos por servicios',
-            'description' => 'Ventas de servicios',
-            'type' => 'ingreso',
-            'nature' => 'credito',
-            'level' => 3,
-            'balance' => 0,
-            'accepts_movements' => true,
-            'active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // Crear cuentas contables base (asegurando dominio de servicio)
+        // Caja general
+        $existingCash = DB::table('accounts')->where('code', '110505')->first();
+        if ($existingCash) {
+            DB::table('accounts')->where('code', '110505')->update([
+                'name' => 'Caja general',
+                'description' => 'Efectivo en caja',
+                'type' => 'activo',
+                'nature' => 'debito',
+                'level' => 4,
+                'balance' => $existingCash->balance ?? 0,
+                'accepts_movements' => true,
+                'active' => true,
+                'service_domain' => $domain,
+                'updated_at' => now(),
+            ]);
+            $accountCashId = $existingCash->id;
+        } else {
+            $accountCashId = DB::table('accounts')->insertGetId([
+                'code' => '110505',
+                'name' => 'Caja general',
+                'description' => 'Efectivo en caja',
+                'type' => 'activo',
+                'nature' => 'debito',
+                'level' => 4,
+                'balance' => 0,
+                'accepts_movements' => true,
+                'active' => true,
+                'service_domain' => $domain,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        // Ingresos por servicios
+        $existingRevenue = DB::table('accounts')->where('code', '4135')->first();
+        if ($existingRevenue) {
+            DB::table('accounts')->where('code', '4135')->update([
+                'name' => 'Ingresos por servicios',
+                'description' => 'Ventas de servicios',
+                'type' => 'ingreso',
+                'nature' => 'credito',
+                'level' => 3,
+                'balance' => $existingRevenue->balance ?? 0,
+                'accepts_movements' => true,
+                'active' => true,
+                'service_domain' => $domain,
+                'updated_at' => now(),
+            ]);
+            $accountRevenueId = $existingRevenue->id;
+        } else {
+            $accountRevenueId = DB::table('accounts')->insertGetId([
+                'code' => '4135',
+                'name' => 'Ingresos por servicios',
+                'description' => 'Ventas de servicios',
+                'type' => 'ingreso',
+                'nature' => 'credito',
+                'level' => 3,
+                'balance' => 0,
+                'accepts_movements' => true,
+                'active' => true,
+                'service_domain' => $domain,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         // Generar proveedores aleatorios
         $cities = ['Bogotá', 'Medellín', 'Cali', 'Barranquilla'];
