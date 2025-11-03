@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Account;
 use App\Models\Invoice;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
@@ -59,11 +60,12 @@ class ExportController extends Controller
                 }
             });
             fclose($out);
-        });
+        }, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
 
-        return $response
-            ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        return $response;
     }
 
     public function transactionsCsv(Request $request)
@@ -117,10 +119,63 @@ class ExportController extends Controller
                 }
             });
             fclose($out);
-        });
+        }, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
 
-        return $response
-            ->header('Content-Type', 'text/csv')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        return $response;
+    }
+
+    public function accountsCsv(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            abort(403);
+        }
+        $domain = method_exists($user, 'emailDomain') ? $user->emailDomain() : ($user->email_domain ?? null);
+
+        $query = Account::query()
+            ->forDomain($domain);
+
+        // Optional filters
+        if ($type = $request->string('type')->toString()) {
+            $query->where('type', $type);
+        }
+        if ($active = $request->string('active')->toString()) {
+            $query->where('active', $active === 'true');
+        }
+        if ($level = $request->integer('level')) {
+            $query->where('level', $level);
+        }
+
+        $filename = 'accounts-' . now()->format('Ymd-His') . '.csv';
+        $response = new StreamedResponse(function () use ($query) {
+            $out = fopen('php://output', 'w');
+            // Header
+            fputcsv($out, ['Código', 'Nombre', 'Descripción', 'Tipo', 'Naturaleza', 'Nivel', 'Balance', 'Activa', 'Acepta Movimientos', 'Cuenta Padre']);
+            $query->with('parent')->orderBy('code')->chunk(500, function ($rows) use ($out) {
+                foreach ($rows as $account) {
+                    fputcsv($out, [
+                        $account->code,
+                        $account->name,
+                        $account->description,
+                        $account->type,
+                        $account->nature,
+                        $account->level,
+                        $account->balance,
+                        $account->active ? 'Sí' : 'No',
+                        $account->accepts_movements ? 'Sí' : 'No',
+                        optional($account->parent)->name,
+                    ]);
+                }
+            });
+            fclose($out);
+        }, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+
+        return $response;
     }
 }

@@ -54,9 +54,9 @@
                     <i class="fas fa-plus mr-2"></i>Nueva Cuenta
                 </a>
             </button>
-            <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg ml-2">
-                <i class="fas fa-download mr-2"></i>Exportar
-            </button>
+            <a href="{{ route('accounting.accounts.export.csv') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg ml-2 inline-block" title="Exportar CSV">
+                <i class="fas fa-download mr-2"></i>Exportar CSV
+            </a>
         </div>
 
         <!-- Accounts Table -->
@@ -107,20 +107,31 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                    {{ $account->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                    {{ $account->is_active ? 'Activa' : 'Inactiva' }}
+                                    {{ ($account->active) ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                    {{ ($account->active) ? 'Activa' : 'Inactiva' }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button class="text-blue-600 hover:text-blue-900 mr-3">
+                                <a href="{{ route('accounting.accounts.edit', $account->id) }}" class="text-blue-600 hover:text-blue-900 mr-3" title="Editar">
                                     <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="text-green-600 hover:text-green-900 mr-3">
+                                </a>
+                                <button class="text-green-600 hover:text-green-900 mr-3 js-account-view" title="Ver"
+                                        data-code="{{ $account->code }}"
+                                        data-name="{{ $account->name }}"
+                                        data-type="{{ $account->type }}"
+                                        data-nature="{{ $account->nature ?? '' }}"
+                                        data-level="{{ $account->level ?? '' }}"
+                                        data-balance="{{ number_format((float)$account->balance, 2) }}"
+                                        data-active="{{ ($account->active) ? 'Sí' : 'No' }}"
+                                        data-accepts="{{ $account->accepts_movements ? 'Sí' : 'No' }}">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                <button class="text-red-600 hover:text-red-900">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                <form method="POST" action="{{ route('accounting.accounts.deactivate', $account->id) }}" class="inline">
+                                    @csrf
+                                    <button type="submit" class="text-red-600 hover:text-red-900" title="Desactivar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         @endforeach
@@ -191,6 +202,63 @@
                 </div>
             </div>
         </div>
+        <!-- Modal Ver Cuenta -->
+        <div id="account-view-modal" class="fixed inset-0 bg-black bg-opacity-30 hidden items-center justify-center">
+            <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">Detalle de Cuenta</h3>
+                    <button id="account-view-close" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="space-y-2 text-sm" id="account-view-body"></div>
+                <div class="mt-4 text-right">
+                    <button id="account-view-close-bottom" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Cerrar</button>
+                </div>
+            </div>
+        </div>
     </div>
+<script>
+    function openAccountView(data) {
+        const body = document.getElementById('account-view-body');
+        body.innerHTML = `
+            <div class="flex justify-between"><span class="text-gray-600">Código:</span><span class="font-medium">${data.code}</span></div>
+            <div class="flex justify-between"><span class="text-gray-600">Nombre:</span><span class="font-medium">${data.name}</span></div>
+            <div class="flex justify-between"><span class="text-gray-600">Tipo:</span><span class="font-medium">${data.type}</span></div>
+            <div class="flex justify-between"><span class="text-gray-600">Naturaleza:</span><span class="font-medium">${data.nature}</span></div>
+            <div class="flex justify-between"><span class="text-gray-600">Nivel:</span><span class="font-medium">${data.level}</span></div>
+            <div class="flex justify-between"><span class="text-gray-600">Balance:</span><span class="font-medium">$${data.balance}</span></div>
+            <div class="flex justify-between"><span class="text-gray-600">Activa:</span><span class="font-medium">${data.active}</span></div>
+            <div class="flex justify-between"><span class="text-gray-600">Acepta Movimientos:</span><span class="font-medium">${data.accepts}</span></div>
+        `;
+        const modal = document.getElementById('account-view-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+    function closeAccountView() {
+        const modal = document.getElementById('account-view-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+    document.addEventListener('DOMContentLoaded', function(){
+        document.querySelectorAll('.js-account-view').forEach(function(btn){
+            btn.addEventListener('click', function(){
+                openAccountView({
+                    code: btn.dataset.code,
+                    name: btn.dataset.name,
+                    type: btn.dataset.type,
+                    nature: btn.dataset.nature,
+                    level: btn.dataset.level,
+                    balance: btn.dataset.balance,
+                    active: btn.dataset.active,
+                    accepts: btn.dataset.accepts,
+                });
+            });
+        });
+        document.getElementById('account-view-close')?.addEventListener('click', closeAccountView);
+        document.getElementById('account-view-close-bottom')?.addEventListener('click', closeAccountView);
+        document.getElementById('account-view-modal')?.addEventListener('click', function(e){
+            if (e.target.id === 'account-view-modal') closeAccountView();
+        });
+    });
+</script>
 </body>
 </html>

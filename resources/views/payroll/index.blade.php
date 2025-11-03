@@ -222,8 +222,13 @@
                         <a href="{{ route('payroll.process') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
                             <i class="fas fa-calculator mr-2"></i>Nueva Nómina
                         </a>
+<<<<<<< Updated upstream
                         <button class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
                             <i class="fas fa-download mr-2"></i>Exportar
+=======
+                        <button id="btn-export-payrolls" type="button" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
+                            <i class="fas fa-download mr-2"></i>{{ __('payroll.reports.actions.export') }}
+>>>>>>> Stashed changes
                         </button>
                     </div>
                 </div>
@@ -594,6 +599,161 @@
         // Initialize the first tab as active on page load
         document.addEventListener('DOMContentLoaded', function() {
             showTab('empleados');
+<<<<<<< Updated upstream
+=======
+
+            // Wire up action buttons
+            document.querySelectorAll('button[data-action="view"]').forEach(btn => {
+                btn.addEventListener('click', () => openEmployeeModal(btn.dataset));
+            });
+
+            document.querySelectorAll('button[data-action="edit"]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // En esta demo, redirigimos a crear empleado como punto de partida
+                    window.location.href = "{{ route('payroll.employees.create') }}" + '?employee_id=' + encodeURIComponent(btn.dataset.id || '');
+                });
+            });
+
+            document.querySelectorAll('button[data-action="payroll"]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    window.location.href = "{{ route('payroll.process') }}" + '?employee_id=' + encodeURIComponent(btn.dataset.id || '');
+                });
+            });
+
+            document.querySelectorAll('button[data-action="reports"]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    showTab('reportes');
+                });
+            });
+
+            // Modal controls
+            document.getElementById('modal-close').addEventListener('click', () => {
+                document.getElementById('employee-profile-modal').classList.add('hidden');
+            });
+            document.getElementById('employee-profile-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'employee-profile-modal') {
+                    document.getElementById('employee-profile-modal').classList.add('hidden');
+                }
+            });
+            document.getElementById('modal-go-payroll').addEventListener('click', (e) => {
+                const id = e.currentTarget.dataset.id || '';
+                window.location.href = "{{ route('payroll.process') }}" + '?employee_id=' + encodeURIComponent(id);
+            });
+            document.getElementById('modal-go-reports').addEventListener('click', (e) => {
+                showTab('reportes');
+                document.getElementById('employee-profile-modal').classList.add('hidden');
+            });
+
+            const exportRouteTemplate = "{{ route('reports.export', ['format' => 'FORMAT_PLACEHOLDER']) }}";
+            const deleteRouteTemplate = "{{ route('reports.delete', ['id' => '__ID__']) }}";
+
+            const periodSelect = document.getElementById('report-period');
+            const formatSelect = document.getElementById('report-format');
+            const typeSelect = document.getElementById('report-type');
+
+            const buildExportUrl = (fmt, prd, type) => {
+                const q = new URLSearchParams({ period: prd || 'month', type: type || 'summary' }).toString();
+                return exportRouteTemplate.replace('FORMAT_PLACEHOLDER', fmt || 'pdf') + '?' + q;
+            };
+
+            const buildViewUrl = (prd, type) => {
+                // Para vista previa, usamos PDF del endpoint público de exportación
+                return buildExportUrl('pdf', prd, type);
+            };
+
+            const btnGenerate = document.getElementById('btn-generate-report');
+            const btnDownload = document.getElementById('btn-download-report');
+            const btnExportPayrolls = document.getElementById('btn-export-payrolls');
+
+            if (btnGenerate) {
+                btnGenerate.addEventListener('click', () => {
+                    const prd = periodSelect ? periodSelect.value : 'month';
+                    const type = typeSelect ? typeSelect.value || 'summary' : 'summary';
+                    const url = buildViewUrl(prd, type);
+                    openPdfPreview(url, 'Vista previa: ' + (typeSelect?.options[typeSelect.selectedIndex]?.text || 'Reporte'), url, 'pdf');
+                    showTab('reportes');
+                });
+            }
+
+            if (btnDownload) {
+                btnDownload.addEventListener('click', () => {
+                    const prd = periodSelect ? periodSelect.value : 'month';
+                    const fmt = formatSelect ? formatSelect.value : 'pdf';
+                    const type = typeSelect ? typeSelect.value || 'summary' : 'summary';
+                    const url = buildExportUrl(fmt, prd, type);
+                    window.location.href = url;
+                });
+            }
+
+            // Exportar desde pestaña "Nóminas" con valores por defecto
+            if (btnExportPayrolls) {
+                btnExportPayrolls.addEventListener('click', () => {
+                    const prd = 'month';
+                    const fmt = 'csv';
+                    const type = 'summary';
+                    const url = buildExportUrl(fmt, prd, type);
+                    window.location.href = url;
+                });
+            }
+
+            document.querySelectorAll('.js-card-action').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const prd = periodSelect ? periodSelect.value : 'month';
+                    const type = btn.dataset.type || 'summary';
+                    const fmt = btn.dataset.format || 'pdf';
+                    const viewUrl = buildViewUrl(prd, type);
+                    const downloadUrl = buildExportUrl(fmt, prd, type);
+                    const title = 'Vista previa: ' + (btn.closest('.bg-white')?.querySelector('h4')?.textContent || 'Reporte');
+                    const isDepartmentsExcel = (type === 'departments' && fmt === 'excel');
+                    if (isDepartmentsExcel) {
+                        // Solicitud: Por Departamento debe descargar Excel directo (comportamiento anterior)
+                        window.location.href = downloadUrl;
+                    } else {
+                        openPdfPreview(viewUrl, title, downloadUrl, fmt);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.js-report-view').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const prd = btn.dataset.period || 'month';
+                    const type = btn.dataset.type || 'summary';
+                    const url = buildViewUrl(prd, type);
+                    openPdfPreview(url, 'Vista previa: ' + (btn.closest('tr')?.querySelector('td')?.textContent || 'Reporte'), url, 'pdf');
+                });
+            });
+
+            document.querySelectorAll('.js-report-download').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const fmt = btn.dataset.format || 'pdf';
+                    const prd = btn.dataset.period || 'month';
+                    const type = btn.dataset.type || 'summary';
+                    const url = buildExportUrl(fmt, prd, type);
+                    window.location.href = url;
+                });
+            });
+
+            // Eliminar reporte (actualiza sesión y UI)
+            const csrf = "{{ csrf_token() }}";
+            document.querySelectorAll('.js-report-delete').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = btn.dataset.id || btn.closest('tr')?.dataset.id || '';
+                    if (!id) return;
+                    const row = btn.closest('tr');
+                    if (!confirm('¿Eliminar este reporte de la lista?')) return;
+                    try {
+                        const resp = await fetch(deleteRouteTemplate.replace('__ID__', encodeURIComponent(id)), {
+                            method: 'POST',
+                            headers: { 'X-CSRF-TOKEN': csrf }
+                        });
+                        if (!resp.ok) throw new Error('Error ' + resp.status);
+                    } catch (err) {
+                        console.warn('Fallo eliminando en servidor, removiendo de UI:', err);
+                    }
+                    if (row) row.remove();
+                });
+            });
+>>>>>>> Stashed changes
         });
     </script>
 </body>

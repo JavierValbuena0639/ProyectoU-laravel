@@ -99,16 +99,16 @@
                         <label for="account" class="block text-sm font-medium text-gray-700 mb-2">
                             <i class="fas fa-list mr-1"></i>Cuenta
                         </label>
+                        @php
+                            $domain = auth()->user()->emailDomain();
+                            $accounts = \App\Models\Account::forDomain($domain)->active()->acceptsMovements()->orderBy('code')->get();
+                        @endphp
                         <select id="account" name="account" 
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
                             <option value="">Seleccionar cuenta...</option>
-                            <option value="1100">1100 - Caja</option>
-                            <option value="1200">1200 - Bancos</option>
-                            <option value="1300">1300 - Cuentas por Cobrar</option>
-                            <option value="2100">2100 - Cuentas por Pagar</option>
-                            <option value="3100">3100 - Capital</option>
-                            <option value="4100">4100 - Ingresos por Ventas</option>
-                            <option value="5100">5100 - Gastos Operativos</option>
+                            @foreach($accounts as $acc)
+                                <option value="{{ $acc->code }}">{{ $acc->code }} - {{ $acc->name }}</option>
+                            @endforeach
                         </select>
                     </div>
 

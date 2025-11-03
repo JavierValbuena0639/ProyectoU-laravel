@@ -132,15 +132,18 @@
                                 ${{ number_format($transaction->amount, 2) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button class="text-blue-600 hover:text-blue-900 mr-3">
+                                <a href="{{ route('accounting.transactions.show', $transaction) }}" class="text-blue-600 hover:text-blue-900 mr-3" title="Ver">
                                     <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="text-green-600 hover:text-green-900 mr-3">
+                                </a>
+                                <a href="{{ route('accounting.transactions.edit', $transaction) }}" class="text-green-600 hover:text-green-900 mr-3" title="Editar">
                                     <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="text-red-600 hover:text-red-900">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                </a>
+                                <form action="{{ route('accounting.transactions.cancel', $transaction) }}" method="POST" class="inline" onsubmit="return confirm('¿Cancelar esta transacción?');">
+                                    @csrf
+                                    <button type="submit" class="text-red-600 hover:text-red-900" title="Cancelar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         @endforeach
