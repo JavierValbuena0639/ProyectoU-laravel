@@ -31,6 +31,12 @@ class RoleSeeder extends Seeder
                 'description' => 'Contador con acceso a módulos contables',
                 'active' => true,
             ],
+            [
+                'name' => 'soporte_interno',
+                'display_name' => 'Soporte Interno',
+                'description' => 'Rol de soporte interno para panel administrativo',
+                'active' => true,
+            ],
         ];
 
         foreach ($roles as $role) {

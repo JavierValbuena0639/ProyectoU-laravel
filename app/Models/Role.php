@@ -55,6 +55,6 @@ class Role extends Model
      */
     public function isSupport(): bool
     {
-        return $this->name === 'soporte_interno';
+        return strtolower(trim($this->name)) === 'soporte_interno';
     }
 }

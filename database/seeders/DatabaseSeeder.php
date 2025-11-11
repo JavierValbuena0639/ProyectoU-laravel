@@ -13,8 +13,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Crear admin/fundador primero para asegurar que sea el fundador por dominio
+        // Sembrar roles base primero para mantener consistencia (incluye soporte_interno)
         $this->call([
+            RoleSeeder::class,
             AdminUserCredentialsSeeder::class,
             TenantDemoSeeder::class,
         ]);
