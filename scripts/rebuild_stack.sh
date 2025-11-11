@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Asegura rutas desde la raíz del repositorio, sin depender del CWD
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
 echo "Stopping and removing containers, networks and volumes..."
 docker compose down -v
 
@@ -11,10 +15,19 @@ docker compose build --no-cache
 echo "Building frontend assets (Vite)..."
 docker compose run --rm node sh -lc "npm ci && npm run build"
 # Asegurar que no queda modo dev activo
-rm -f public/hot || true
+rm -f "$ROOT_DIR/public/hot" || true
+
+# Fallback: algunos builds escriben el manifest en .vite/manifest.json
+if [ -f "$ROOT_DIR/public/build/.vite/manifest.json" ] && [ ! -f "$ROOT_DIR/public/build/manifest.json" ]; then
+  mv "$ROOT_DIR/public/build/.vite/manifest.json" "$ROOT_DIR/public/build/manifest.json"
+fi
+
+# Diagnóstico rápido del directorio de build
+echo "Listing public/build contents:"
+ls -la "$ROOT_DIR/public/build" || true
 
 # Verificación rápida del manifest
-if [ ! -f "public/build/manifest.json" ]; then
+if [ ! -f "$ROOT_DIR/public/build/manifest.json" ]; then
   echo "ERROR: No se generó public/build/manifest.json. Revisa salida de npm run build."
   exit 1
 fi
