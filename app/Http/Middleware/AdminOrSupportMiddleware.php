@@ -16,24 +16,15 @@ class AdminOrSupportMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-<<<<<<< Updated upstream
-=======
         // Verificar si el usuario está autenticado
->>>>>>> Stashed changes
         if (!Auth::check()) {
             return redirect()->route('login');
         }
 
-<<<<<<< Updated upstream
+        // Permitir acceso si es admin o soporte
         $user = Auth::user();
         if (!$user->isAdminOrSupport()) {
             abort(403, 'Se requiere rol administrador o soporte interno.');
-=======
-        // Permitir acceso si es admin o soporte
-        $user = Auth::user();
-        if (!($user->isAdmin() || (method_exists($user, 'isSupport') && $user->isSupport()))) {
-            abort(403, 'No tienes permisos para acceder a esta sección.');
->>>>>>> Stashed changes
         }
 
         return $next($request);
