@@ -43,7 +43,7 @@ services:
 
   # Servicio opcional para desarrollo con hot reload
   node:
-    image: node:18-alpine
+    image: node:22-alpine
     container_name: sumaxia_node
     restart: unless-stopped
     working_dir: /var/www
