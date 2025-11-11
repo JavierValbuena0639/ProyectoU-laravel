@@ -124,14 +124,14 @@ class LoginController extends Controller
             ]);
         } catch (\Throwable $e) {}
 
-        // Redirigir según el rol del usuario
+        // Redirigir según el rol del usuario (sin usar intended para evitar desvíos)
         if ($user->isAdmin()) {
-            return redirect()->intended('/admin/dashboard');
+            return redirect()->route('admin.dashboard');
         }
         if (method_exists($user, 'isSupport') && $user->isSupport()) {
-            return redirect()->intended('/admin/database');
+            return redirect()->route('admin.database');
         }
-        
+
         return redirect()->intended('/dashboard');
     }
 
