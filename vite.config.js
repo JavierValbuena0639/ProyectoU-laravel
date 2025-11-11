@@ -16,8 +16,5 @@ export default defineConfig(({ command }) => ({
         outDir: 'public/build',
         emptyOutDir: true,
         manifest: 'manifest.json',
-        rollupOptions: {
-            input: 'resources/js/app.js',
-        },
     },
 }));
