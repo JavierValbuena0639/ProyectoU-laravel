@@ -50,9 +50,7 @@
             <a href="{{ route('admin.users.create') }}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg">
                 <i class="fas fa-plus mr-2"></i>Nuevo Usuario
             </a>
-            <a href="{{ route('admin.roles') }}" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg ml-2">
-                <i class="fas fa-users-cog mr-2"></i>Gestionar Roles
-            </a>
+            {{-- Botón de Gestionar Roles ocultado para todos los usuarios --}}
         </div>
 
         <!-- Users Table -->
