@@ -22,19 +22,23 @@ APP_DB_PASS=${DB_PASSWORD:-sumaxia_password}
 APP_DB_NAME=${DB_DATABASE:-sumaxia}
 DB_SSL_MODE=${DB_SSL_MODE:-PREFERRED} # Usa REQUIRED en proveedores que exigen SSL (p.ej. Railway)
 
-echo "🗄️ Esperando a MySQL (${DB_HOST}:${DB_PORT}) con usuario de la app..."
-until mysqladmin ping -h"${DB_HOST}" -P"${DB_PORT}" -u"${APP_DB_USER}" -p"${APP_DB_PASS}" --ssl-mode="${DB_SSL_MODE}" --silent; do
-  echo "Esperando a MySQL..."
-  sleep 2
+echo "🗄️ Esperando a MySQL (${DB_HOST}:${DB_PORT})..."
+# Algunos clientes no soportan --ssl-mode en mysqladmin. Usamos 'mysql' para verificar con SSL.
+for i in $(seq 1 60); do
+  if mysql -h"${DB_HOST}" -P"${DB_PORT}" -u"${APP_DB_USER}" -p"${APP_DB_PASS}" --ssl-mode="${DB_SSL_MODE}" -e "SELECT 1" >/dev/null 2>&1; then
+    READY=1
+    break
+  else
+    echo "Esperando a MySQL..."
+    sleep 2
+  fi
 done
-
-echo "✅ MySQL responde. Probando consulta con credenciales de aplicación..."
-if ! mysql -h"${DB_HOST}" -P"${DB_PORT}" -u"${APP_DB_USER}" -p"${APP_DB_PASS}" --ssl-mode="${DB_SSL_MODE}" -e "SELECT 1" >/dev/null 2>&1; then
-  echo "❌ No fue posible autenticarse con las credenciales de la aplicación."
-  echo "   Verifica variables: DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD y DB_SSL_MODE."
-  echo "   En plataformas gestionadas (Railway), NO hay acceso root ni se crean usuarios/BD desde la app."
+if [ -z "${READY}" ]; then
+  echo "❌ No fue posible conectar a MySQL tras varios intentos. Revisa host/puerto y SSL."
   exit 1
 fi
+
+echo "✅ MySQL responde y autenticación de la app OK."
 
 # Limpiar y generar cachés
 php artisan config:clear || true
