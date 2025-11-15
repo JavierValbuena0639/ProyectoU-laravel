@@ -112,5 +112,5 @@ RUN composer dump-autoload --optimize
 # Exponer puerto
 EXPOSE 80
 
-# Comando por defecto
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Comando por defecto: ejecuta init-app.sh (migraciones/seeders/cache) y luego supervisord
+CMD ["/bin/bash", "-lc", "/usr/local/bin/init-app.sh"]
