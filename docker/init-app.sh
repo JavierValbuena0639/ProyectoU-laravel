@@ -15,11 +15,11 @@ if [ ! -f "/var/www/vendor/autoload.php" ]; then
 fi
 
 ## Esperar a que MySQL esté listo usando las credenciales de la app
-DB_HOST=${DB_HOST:-mysql}
-DB_PORT=${DB_PORT:-3306}
-APP_DB_USER=${DB_USERNAME:-sumaxia_user}
-APP_DB_PASS=${DB_PASSWORD:-sumaxia_password}
-APP_DB_NAME=${DB_DATABASE:-sumaxia}
+DB_HOST=${DB_HOST:-${MYSQLHOST:-mysql}}
+DB_PORT=${DB_PORT:-${MYSQLPORT:-3306}}
+APP_DB_USER=${DB_USERNAME:-${MYSQLUSER:-sumaxia_user}}
+APP_DB_PASS=${DB_PASSWORD:-${MYSQLPASSWORD:-sumaxia_password}}
+APP_DB_NAME=${DB_DATABASE:-${MYSQLDATABASE:-sumaxia}}
 DB_SSL_MODE=${DB_SSL_MODE:-PREFERRED} # Usa REQUIRED en proveedores que exigen SSL (p.ej. Railway)
 
 echo "🗄️ Esperando a MySQL (${DB_HOST}:${DB_PORT})..."
