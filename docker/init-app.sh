@@ -14,12 +14,33 @@ if [ ! -f "/var/www/vendor/autoload.php" ]; then
   composer install --no-scripts --no-interaction --optimize-autoloader
 fi
 
+## Resolver credenciales de DB desde variables, incluyendo DB_URL si existe
+PARSED_DB_HOST=""
+PARSED_DB_PORT=""
+PARSED_DB_USER=""
+PARSED_DB_PASS=""
+PARSED_DB_NAME=""
+if [ -n "${DB_URL}" ]; then
+  URL_NO_PROTO="${DB_URL#mysql://}"
+  USERPASS="${URL_NO_PROTO%%@*}"
+  HOSTPATH="${URL_NO_PROTO#*@}"
+  HOSTPORT="${HOSTPATH%%/*}"
+  PARSED_DB_NAME="${HOSTPATH#*/}"
+  PARSED_DB_USER="${USERPASS%%:*}"
+  PARSED_DB_PASS="${USERPASS#*:}"
+  PARSED_DB_HOST="${HOSTPORT%%:*}"
+  PARSED_DB_PORT="${HOSTPORT#*:}"
+  if [ "${PARSED_DB_PORT}" = "${HOSTPORT}" ] || [ -z "${PARSED_DB_PORT}" ]; then
+    PARSED_DB_PORT="3306"
+  fi
+fi
+
 ## Esperar a que MySQL esté listo usando las credenciales de la app
-DB_HOST=${DB_HOST:-${MYSQLHOST:-mysql}}
-DB_PORT=${DB_PORT:-${MYSQLPORT:-3306}}
-APP_DB_USER=${DB_USERNAME:-${MYSQLUSER:-sumaxia_user}}
-APP_DB_PASS=${DB_PASSWORD:-${MYSQLPASSWORD:-sumaxia_password}}
-APP_DB_NAME=${DB_DATABASE:-${MYSQLDATABASE:-sumaxia}}
+DB_HOST=${DB_HOST:-${MYSQLHOST:-${PARSED_DB_HOST:-mysql}}}
+DB_PORT=${DB_PORT:-${MYSQLPORT:-${PARSED_DB_PORT:-3306}}}
+APP_DB_USER=${DB_USERNAME:-${MYSQLUSER:-${PARSED_DB_USER:-sumaxia_user}}}
+APP_DB_PASS=${DB_PASSWORD:-${MYSQLPASSWORD:-${PARSED_DB_PASS:-sumaxia_password}}}
+APP_DB_NAME=${DB_DATABASE:-${MYSQLDATABASE:-${PARSED_DB_NAME:-sumaxia}}}
 DB_SSL_MODE=${DB_SSL_MODE:-PREFERRED} # Usa REQUIRED en proveedores que exigen SSL (p.ej. Railway)
 
 echo "🗄️ Esperando a MySQL (${DB_HOST}:${DB_PORT})..."
