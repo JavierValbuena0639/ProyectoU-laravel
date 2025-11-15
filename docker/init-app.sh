@@ -45,14 +45,14 @@ if [ -n "${DB_URL}" ]; then
 fi
 
 ## Esperar a que MySQL esté listo usando las credenciales de la app
-DB_HOST=${DB_HOST:-${MYSQLHOST:-${PARSED_DB_HOST:-mysql}}}
-DB_PORT=${DB_PORT:-${MYSQLPORT:-${PARSED_DB_PORT:-3306}}}
-APP_DB_USER=${DB_USERNAME:-${MYSQLUSER:-${PARSED_DB_USER:-sumaxia_user}}}
-APP_DB_PASS=${DB_PASSWORD:-${MYSQLPASSWORD:-${PARSED_DB_PASS:-sumaxia_password}}}
-APP_DB_NAME=${DB_DATABASE:-${MYSQLDATABASE:-${PARSED_DB_NAME:-sumaxia}}}
+DB_HOST=${DB_HOST:-${PARSED_DB_HOST:-${MYSQLHOST:-mysql}}}
+DB_PORT=${DB_PORT:-${PARSED_DB_PORT:-${MYSQLPORT:-3306}}}
+APP_DB_USER=${DB_USERNAME:-${PARSED_DB_USER:-${MYSQLUSER:-sumaxia_user}}}
+APP_DB_PASS=${DB_PASSWORD:-${PARSED_DB_PASS:-${MYSQLPASSWORD:-sumaxia_password}}}
+APP_DB_NAME=${DB_DATABASE:-${PARSED_DB_NAME:-${MYSQLDATABASE:-sumaxia}}}
 DB_SSL_MODE=${DB_SSL_MODE:-PREFERRED} # Usa REQUIRED en proveedores que exigen SSL (p.ej. Railway)
 
-echo "🗄️ Esperando a MySQL (${DB_HOST}:${DB_PORT})..."
+echo "🗄️ Esperando a MySQL (${DB_HOST}:${DB_PORT}) con usuario '${APP_DB_USER}' y base '${APP_DB_NAME}'..."
 # Algunos clientes no soportan --ssl-mode en mysqladmin. Usamos 'mysql' para verificar con SSL.
 for i in $(seq 1 60); do
   if mysql -h"${DB_HOST}" -P"${DB_PORT}" -u"${APP_DB_USER}" -p"${APP_DB_PASS}" --ssl-mode="${DB_SSL_MODE}" -e "SELECT 1" >/dev/null 2>&1; then
