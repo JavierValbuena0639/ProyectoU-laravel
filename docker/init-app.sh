@@ -21,7 +21,16 @@ PARSED_DB_USER=""
 PARSED_DB_PASS=""
 PARSED_DB_NAME=""
 if [ -n "${DB_URL}" ]; then
-  URL_NO_PROTO="${DB_URL#mysql://}"
+  # Sanitizar: remover comillas/backticks y espacios alrededor
+  RAW_DB_URL="${DB_URL}"
+  RAW_DB_URL="${RAW_DB_URL//\"/}"
+  RAW_DB_URL="${RAW_DB_URL//\`/}"
+  # trim leading spaces
+  RAW_DB_URL="${RAW_DB_URL#${RAW_DB_URL%%[![:space:]]*}}"
+  # trim trailing spaces
+  RAW_DB_URL="${RAW_DB_URL%${RAW_DB_URL##*[![:space:]]}}"
+
+  URL_NO_PROTO="${RAW_DB_URL#mysql://}"
   USERPASS="${URL_NO_PROTO%%@*}"
   HOSTPATH="${URL_NO_PROTO#*@}"
   HOSTPORT="${HOSTPATH%%/*}"
