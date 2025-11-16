@@ -24,6 +24,7 @@ services:
       - DB_DATABASE=sumaxia
       - DB_USERNAME=sumaxia_user
       - DB_PASSWORD=sumaxia_password
+      - DB_SSL_MODE=DISABLED
       - MAIL_MAILER=smtp
       - MAIL_HOST=sandbox.smtp.mailtrap.io
       - MAIL_PORT=2525

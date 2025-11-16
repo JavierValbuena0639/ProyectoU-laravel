@@ -55,7 +55,7 @@ DB_SSL_MODE=${DB_SSL_MODE:-PREFERRED} # Usa REQUIRED en proveedores que exigen S
 echo "🗄️ Esperando a MySQL (${DB_HOST}:${DB_PORT}) con usuario '${APP_DB_USER}' y base '${APP_DB_NAME}'..."
 # Algunos clientes no soportan --ssl-mode en mysqladmin. Usamos 'mysql' para verificar con SSL.
 for i in $(seq 1 60); do
-  if mysql -h"${DB_HOST}" -P"${DB_PORT}" -u"${APP_DB_USER}" -p"${APP_DB_PASS}" --ssl-mode="${DB_SSL_MODE}" -e "SELECT 1" >/dev/null 2>&1; then
+  if mysql --skip-ssl -h"${DB_HOST}" -P"${DB_PORT}" -u"${APP_DB_USER}" -p"${APP_DB_PASS}" --connect-timeout=2 -e "SELECT 1" >/dev/null 2>&1; then
     READY=1
     break
   else
